@@ -1,0 +1,26 @@
+{
+  "name": "TCC للمقاولات العامة والتطوير العقاري",
+  "short_name": "TCC",
+  "description": "منظومة إدارة المقاولات والعقارات والحسابات لشركة TCC",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "portrait-primary",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

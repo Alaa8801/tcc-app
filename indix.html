@@ -1,0 +1,3355 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>TCC | منظومة إدارة المقاولات والعقارات والحسابات</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" href="./icon.png">
+<link rel="apple-touch-icon" href="./icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+
+<style>
+:root {
+  --bg-main: #07090e;
+  --surface-card: #11151f;
+  --surface-elevated: #191f2e;
+  --border-subtle: #262f45;
+  --border-strong: #3d4a6a;
+  --text-main: #ffffff;
+  --text-muted: #94a3b8;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #38bdf8;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+}
+
+[data-theme="light"] {
+  --bg-main: #f4f6fa;
+  --surface-card: #ffffff;
+  --surface-elevated: #edf1f7;
+  --border-subtle: #cbd5e1;
+  --border-strong: #64748b;
+  --text-main: #0a0e17;
+  --text-muted: #475569;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --info: #0284c7;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; overflow-x: hidden; direction: rtl; }
+
+/* عزل الشاشات بشكل قاطع */
+.screen { display: none !important; min-height: 100vh; padding-bottom: 95px; width: 100%; }
+.screen.active { display: block !important; animation: fadeIn 0.15s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+/* تقييد الأيقونات لمنع التضخم */
+svg, .svg-icon {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  stroke: currentColor;
+  fill: none !important;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* الهيدر العلوي */
+.app-header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 10px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.header-logo-badge {
+  background: var(--text-main); color: var(--bg-main);
+  font-weight: 900; font-size: 13px; padding: 3px 9px;
+  border-radius: var(--radius-sm); letter-spacing: 1px;
+}
+.header-logo-img { height: 32px; max-width: 90px; object-fit: contain; }
+.header-title-text { font-size: 14px; font-weight: 800; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.btn-icon-head {
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  background: var(--surface-elevated); border: 1px solid var(--border-subtle);
+  color: var(--text-main); display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+/* الصناديق الإحصائية */
+.stats-banner { margin: 12px 14px 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-box {
+  background: var(--surface-card); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); padding: 12px; cursor: pointer;
+}
+.stat-box-title { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 3px; }
+.stat-box-val { font-size: 16px; font-weight: 900; direction: ltr; text-align: right; }
+.stat-box-sub { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+
+/* شبكة الأقسام */
+.dashboard-grid { margin: 10px 14px 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.dash-card-btn {
+  background: var(--surface-card); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); padding: 10px 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; color: var(--text-main); cursor: pointer; text-align: center;
+  font-size: 11px; font-weight: 800; height: 82px;
+}
+.dash-card-btn:active { transform: scale(0.96); background: var(--surface-elevated); }
+
+/* شريط التنقل السفلي */
+.bottom-nav-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 64px;
+  background: var(--surface-card); border-top: 1px solid var(--border-subtle);
+  display: flex; justify-content: space-around; align-items: center; z-index: 200;
+}
+.nav-action-item {
+  background: none; border: none; color: var(--text-muted);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 800; cursor: pointer; flex: 1;
+}
+.nav-action-item.active { color: var(--text-main); }
+.nav-action-center-btn {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--text-main); color: var(--bg-main);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; box-shadow: 0 4px 14px rgba(255,255,255,0.25);
+  margin-top: -22px; border: 3px solid var(--bg-main);
+  font-size: 24px; font-weight: 900; line-height: 1;
+}
+
+/* النوافذ المنبثقة */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(3px); z-index: 600; align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex !important; }
+.modal-content {
+  background: var(--surface-card); border-radius: 20px 20px 0 0;
+  padding: 18px 16px 34px; width: 100%; max-height: 92vh; overflow-y: auto;
+  border-top: 1px solid var(--border-subtle);
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.modal-header h3 { font-size: 15px; font-weight: 900; }
+.close-btn { background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 2px 8px; }
+
+.quick-menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.quick-menu-item {
+  background: var(--surface-elevated); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); padding: 14px 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-weight: 800; font-size: 13px; text-align: center;
+}
+.quick-menu-item:active { transform: scale(0.97); }
+
+/* الحقول ونظام التصفية الذكي الموحد */
+.form-group { margin-bottom: 10px; position: relative; }
+.form-label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
+.form-input, .form-textarea, .form-select {
+  width: 100%; background: var(--surface-elevated); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; color: var(--text-main); outline: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--border-strong); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.combo-wrap { position: relative; }
+.combo-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0;
+  background: var(--surface-elevated); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); max-height: 190px; overflow-y: auto;
+  z-index: 800; display: none; box-shadow: 0 8px 25px rgba(0,0,0,0.7);
+}
+.combo-item {
+  padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px; display: flex; justify-content: space-between; align-items: center;
+}
+.combo-item:hover, .combo-item:active { background: var(--surface-card); color: var(--info); }
+.combo-empty {
+  padding: 10px 12px; font-size: 12px; color: var(--warning);
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.btn-solid {
+  width: 100%; padding: 11px; background: var(--text-main); color: var(--bg-main);
+  border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 800;
+  cursor: pointer; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-secondary { background: var(--surface-elevated); color: var(--text-main); border: 1px solid var(--border-subtle); }
+.btn-whatsapp { background: #25d366; color: #fff; }
+.btn-danger { background: var(--danger); color: #fff; }
+
+.btn-action-pill {
+  padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border-subtle);
+  background: var(--surface-elevated); color: var(--text-main);
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px; height: 30px; white-space: nowrap;
+}
+.btn-action-pill.active { background: var(--text-main); color: var(--bg-main); }
+
+/* القائمة الجانبية */
+.drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 999; }
+.drawer-overlay.open { display: block !important; }
+.side-drawer {
+  position: fixed; top: 0; bottom: 0; right: 0; width: 275px;
+  background: var(--surface-card); border-left: 1px solid var(--border-subtle);
+  z-index: 1000; padding: 18px 14px; display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform 0.22s ease; overflow-y: auto;
+}
+.side-drawer.open { transform: translateX(0) !important; }
+.drawer-item {
+  padding: 11px 12px; border-radius: var(--radius-sm); color: var(--text-main);
+  font-weight: 700; font-size: 13px; cursor: pointer; margin-bottom: 3px;
+}
+.drawer-item:hover, .drawer-item:active { background: var(--surface-elevated); }
+
+/* الجداول والبطاقات */
+.table-wrap {
+  width: 100%; overflow-x: auto; border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle); background: var(--surface-card); margin-bottom: 12px;
+}
+.data-table { width: 100%; border-collapse: collapse; text-align: right; font-size: 12px; }
+.data-table th, .data-table td { padding: 9px 10px; border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+.data-table th { background: var(--surface-elevated); font-weight: 800; color: var(--text-muted); }
+
+.card-row-item {
+  background: var(--surface-card); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md); padding: 12px 14px; margin: 0 14px 8px;
+  display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+}
+
+.toast-msg {
+  position: fixed; top: 16px; left: 20px; right: 20px;
+  background: var(--surface-elevated); border: 1px solid var(--border-strong);
+  color: var(--text-main); padding: 11px; border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 800; text-align: center; display: none; z-index: 999999;
+}
+.toast-msg.show { display: block !important; }
+
+/* حاوية تصيير PDF للغة العربية */
+#pdf-render-canvas {
+  position: fixed; left: -9999px; top: 0; width: 794px; min-height: 600px;
+  direction: rtl !important; text-align: right !important;
+  font-family: 'Cairo', Arial, sans-serif !important;
+  letter-spacing: 0px !important; line-height: 1.6 !important;
+  background: #ffffff !important; color: #000000 !important; padding: 32px;
+}
+#pdf-render-canvas table { width: 100%; border-collapse: collapse; direction: rtl; }
+#pdf-render-canvas th, #pdf-render-canvas td {
+  border: 1px solid #cccccc; padding: 7px 9px; font-size: 12px;
+  text-align: right; word-break: break-word; font-family: 'Cairo', Arial, sans-serif !important;
+}
+</style>
+</head>
+<body>
+
+<div class="toast-msg" id="toast-el"></div>
+
+<!-- الشريط العلوي -->
+<header class="app-header">
+  <div class="header-brand" onclick="goTo('screen-home')">
+    <div id="header-brand-logo-container">
+      <div class="header-logo-badge">TCC</div>
+    </div>
+    <div>
+      <div class="header-title-text" id="header-company-name">شركة TCC للمقاولات</div>
+      <div style="font-size:10px; color:var(--text-muted);" id="header-db-status">قاعدة البيانات: محلية نشطة</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button type="button" class="btn-icon-head" onclick="toggleTheme()" title="المظهر">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/></svg>
+    </button>
+    <button type="button" class="btn-icon-head" onclick="openDrawer()" title="القائمة">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- 1. الشاشة الرئيسية -->
+<div class="screen active" id="screen-home">
+  <div class="stats-banner">
+    <div class="stat-box" onclick="goTo('screen-projects')">
+      <div class="stat-box-title">الشقق العقارية</div>
+      <div class="stat-box-val" id="stat-apartments-summary">0 / 0</div>
+      <div class="stat-box-sub" id="stat-apartments-detail">مباعة: 0 | متاحة: 0</div>
+    </div>
+    <div class="stat-box" onclick="goTo('screen-general-expenses')">
+      <div class="stat-box-title">المصاريف الفعلية المدفوعة</div>
+      <div class="stat-box-val" id="stat-total-expenses">$0.00</div>
+      <div class="stat-box-sub">السيولة المنصرفة فعلياً</div>
+    </div>
+    <div class="stat-box" onclick="goTo('screen-customers')">
+      <div class="stat-box-title">الأرصدة المستحقة (لنا)</div>
+      <div class="stat-box-val" style="color:var(--success);" id="stat-receivables">$0.00</div>
+      <div class="stat-box-sub">ذمم وأقساط على العملاء</div>
+    </div>
+    <div class="stat-box" onclick="goTo('screen-reports')">
+      <div class="stat-box-title">الأرصدة المطلوبة (علينا)</div>
+      <div class="stat-box-val" style="color:var(--danger);" id="stat-payables">$0.00</div>
+      <div class="stat-box-sub">موردين ومقاولين ورواتب</div>
+    </div>
+  </div>
+
+  <div style="padding: 4px 14px;">
+    <h3 style="font-size: 13px; font-weight: 800; margin-bottom: 6px;">أقسام المنظومة</h3>
+  </div>
+  <div class="dashboard-grid">
+    <div class="dash-card-btn" onclick="goTo('screen-transactions')">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      <span>العمليات</span>
+    </div>
+    <div class="dash-card-btn" onclick="goTo('screen-projects')">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l8-4v18M13 11l6 3v7"/></svg>
+      <span>الورشات والشقق</span>
+    </div>
+    <div class="dash-card-btn" onclick="goTo('screen-general-expenses')">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      <span>المصاريف العامة</span>
+    </div>
+    <div class="dash-card-btn" onclick="goTo('screen-suppliers')">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>الموردين</span>
+    </div>
+    <div class="dash-card-btn" onclick="goTo('screen-customers')">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      <span>العملاء</span>
+    </div>
+    <div class="dash-card-btn" onclick="goTo('screen-contractors')">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      <span>المقاولين</span>
+    </div>
+    <div class="dash-card-btn" onclick="goTo('screen-employees')">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+      <span>الموظفين</span>
+    </div>
+    <div class="dash-card-btn" onclick="goTo('screen-materials')">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      <span>المواد</span>
+    </div>
+    <div class="dash-card-btn" onclick="goTo('screen-reports')">
+      <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>التقارير الشاملة</span>
+    </div>
+  </div>
+
+  <div style="padding: 8px 14px 4px; display:flex; justify-content:space-between; align-items:center;">
+    <h3 style="font-size: 13px; font-weight: 800;">آخر العمليات المسجلة</h3>
+    <span style="font-size: 11px; color: var(--info); cursor: pointer;" onclick="goTo('screen-transactions')">عرض السجل الكامل</span>
+  </div>
+  <div id="home-recent-transactions-list"></div>
+</div>
+
+<!-- 2. شاشة العمليات العامة -->
+<div class="screen" id="screen-transactions">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+      <h3 style="font-size: 15px; font-weight: 900;">سجل العمليات والمعاملات</h3>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="btn-action-pill" onclick="exportFilteredTxPDF()">تصدير النتائج PDF</button>
+        <button type="button" class="btn-action-pill" onclick="resetTxFilters()">إعادة ضبط</button>
+      </div>
+    </div>
+
+    <div style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px; margin-bottom:12px;">
+      <input type="text" id="tx-search-keyword" class="form-input" placeholder="بحث برقم العملية، اسم الفرد، الشركة، أو البيان..." oninput="applyTxFilters()">
+      <div class="form-row" style="margin-top:8px;">
+        <div class="combo-wrap">
+          <label class="form-label">تصفية بالورشة (بحث ذكي)</label>
+          <input type="text" id="tx-filter-project-input" class="form-input" placeholder="اكتب اسم الورشة..." autocomplete="off">
+          <input type="hidden" id="tx-filter-project">
+          <div class="combo-dropdown" id="tx-filter-project-drop"></div>
+        </div>
+        <div>
+          <label class="form-label">تصفية بنوع العملية</label>
+          <select id="tx-filter-type" class="form-select" onchange="applyTxFilters()">
+            <option value="">كافة العمليات</option>
+            <option value="شراء">فاتورة شراء مواد</option>
+            <option value="بيع">فاتورة بيع شقة</option>
+            <option value="مصروف">مصروف ورشة / عام</option>
+            <option value="دفعة_عميل">دفعة من عميل (سند قبض)</option>
+            <option value="دفعة_مورد">سداد لمورد (سند صرف)</option>
+            <option value="مرتجع_مورد">مرتجع / قبض من مورد</option>
+            <option value="استحقاق_راتب">استحقاق راتب موظف</option>
+            <option value="صرف_راتب">صرف راتب / سلفة</option>
+            <option value="خصم_موظف">خصم على موظف</option>
+            <option value="استحقاق_مقاول">استحقاق أعمال مقاول</option>
+            <option value="سداد_مقاول">سداد دفعة لمقاول</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:8px;">
+        <div>
+          <label class="form-label">من تاريخ</label>
+          <input type="date" id="tx-date-from" class="form-input" onchange="applyTxFilters()">
+        </div>
+        <div>
+          <label class="form-label">إلى تاريخ</label>
+          <input type="date" id="tx-date-to" class="form-input" onchange="applyTxFilters()">
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>التاريخ</th>
+            <th>النوع</th>
+            <th>الطرف / الورشة</th>
+            <th>المبلغ</th>
+            <th>البيان</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="tx-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 3. شاشة الورشات والشقق -->
+<div class="screen" id="screen-projects">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+      <h3 style="font-size: 15px; font-weight: 900;">الورشات والمشاريع العقارية</h3>
+      <button type="button" class="btn-solid" style="margin:0; width:auto; padding:7px 14px;" onclick="openAddProjectModal()">+ إضافة ورشة جديدة</button>
+    </div>
+    <div class="form-group">
+      <input type="text" id="proj-list-search" class="form-input" placeholder="تصفية سريعة لاسم الورشة أو العنوان..." oninput="renderProjectsList()">
+    </div>
+    <div id="projects-list-container"></div>
+  </div>
+</div>
+
+<!-- 4. شاشة تفاصيل الورشة وصناديق الأرباح -->
+<div class="screen" id="screen-project-detail">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <button type="button" class="btn-action-pill" onclick="goTo('screen-projects')">➔ العودة للورشات</button>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="btn-action-pill" onclick="exportProjectReportPDF()">تقرير الورشة PDF</button>
+        <button type="button" class="btn-action-pill" style="color:var(--danger);" onclick="deleteCurrentProjectConfirm()">حذف الورشة</button>
+      </div>
+    </div>
+    
+    <div style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; margin-bottom:12px;">
+      <h2 style="font-size:17px; font-weight:900;" id="proj-detail-name">---</h2>
+      <div style="font-size:11px; color:var(--text-muted);" id="proj-detail-location">---</div>
+
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:10px; text-align:center;">
+        <div style="background:var(--surface-elevated); padding:8px; border-radius:var(--radius-sm);">
+          <div style="font-size:10px; color:var(--text-muted);">إجمالي الشقق</div>
+          <div style="font-size:15px; font-weight:900;" id="proj-detail-total-apts">0</div>
+        </div>
+        <div style="background:var(--surface-elevated); padding:8px; border-radius:var(--radius-sm);">
+          <div style="font-size:10px; color:var(--text-muted);">المباعة</div>
+          <div style="font-size:15px; font-weight:900; color:var(--danger);" id="proj-detail-sold-apts">0</div>
+        </div>
+        <div style="background:var(--surface-elevated); padding:8px; border-radius:var(--radius-sm);">
+          <div style="font-size:10px; color:var(--text-muted);">المتاحة</div>
+          <div style="font-size:15px; font-weight:900; color:var(--success);" id="proj-detail-avail-apts">0</div>
+        </div>
+      </div>
+
+      <!-- صناديق الأرباح والمصاريف الخاصة بالورشة -->
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:8px; text-align:center;">
+        <div style="background:var(--surface-elevated); padding:8px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+          <div style="font-size:10px; color:var(--text-muted); font-weight:bold;">إجمالي مصاريف الورشة</div>
+          <div style="font-size:14px; font-weight:900; color:var(--danger); direction:ltr;" id="proj-box-expenses">-$0.00</div>
+          <div style="font-size:9px; color:var(--text-muted);">مواد + تشغيل + عامة</div>
+        </div>
+        <div style="background:var(--surface-elevated); padding:8px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+          <div style="font-size:10px; color:var(--text-muted); font-weight:bold;">الأرباح الفعلية (السيولة)</div>
+          <div style="font-size:14px; font-weight:900; direction:ltr;" id="proj-box-actual-profit">$0.00</div>
+          <div style="font-size:9px; color:var(--text-muted);">المقبوض نقداً - المصاريف</div>
+        </div>
+        <div style="background:var(--surface-elevated); padding:8px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+          <div style="font-size:10px; color:var(--text-muted); font-weight:bold;">الأرباح المتوقعة</div>
+          <div style="font-size:14px; font-weight:900; direction:ltr;" id="proj-box-expected-profit">$0.00</div>
+          <div style="font-size:9px; color:var(--text-muted);">إجمالي البيع - التكاليف</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-bottom:10px;">
+      <button type="button" class="btn-action-pill active" id="tab-btn-proj-apts" onclick="switchProjTab('apts')">جدول ومخطط الشقق (اضغط على الشقة للتفاصيل)</button>
+      <button type="button" class="btn-action-pill" id="tab-btn-proj-tx" onclick="switchProjTab('tx')">عمليات ومصاريف الورشة</button>
+    </div>
+
+    <div id="proj-tab-apts-view">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>الشقة</th>
+              <th>الحالة</th>
+              <th>المشتري</th>
+              <th>السعر الإجمالي</th>
+              <th>المسدد</th>
+              <th>المتبقي</th>
+              <th>الدفعات</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="proj-apts-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="proj-tab-tx-view" style="display:none;">
+      <div style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:10px; margin-bottom:10px;">
+        <div class="form-row">
+          <input type="text" id="proj-tx-search" class="form-input" placeholder="بحث في عمليات الورشة..." oninput="filterCurrentProjectTxs()">
+          <div style="display:flex; gap:4px;">
+            <input type="date" id="proj-tx-from" class="form-input" onchange="filterCurrentProjectTxs()">
+            <input type="date" id="proj-tx-to" class="form-input" onchange="filterCurrentProjectTxs()">
+          </div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>التاريخ</th>
+              <th>النوع</th>
+              <th>الطرف</th>
+              <th>المبلغ</th>
+              <th>البيان</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="proj-tx-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. شاشة المصاريف العامة -->
+<div class="screen" id="screen-general-expenses">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+      <h3 style="font-size: 15px; font-weight: 900;">قسم المصاريف العامة (مرتبطة بالورشات)</h3>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="btn-solid" style="margin:0; width:auto; padding:6px 12px;" onclick="openQuickExpenseModal()">+ إضافة مصروف</button>
+        <button type="button" class="btn-action-pill" onclick="exportExpensesPDF()">تصدير PDF</button>
+      </div>
+    </div>
+
+    <div style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px; margin-bottom:12px;">
+      <div class="form-row">
+        <div class="combo-wrap">
+          <label class="form-label">تصفية حسب الورشة (بحث ذكي)</label>
+          <input type="text" id="exp-filter-project-input" class="form-input" placeholder="اكتب اسم الورشة..." autocomplete="off">
+          <input type="hidden" id="exp-filter-project">
+          <div class="combo-dropdown" id="exp-filter-project-drop"></div>
+        </div>
+        <div>
+          <label class="form-label">بحث في البيان</label>
+          <input type="text" id="exp-search-keyword" class="form-input" placeholder="نقل خشب، محروقات، طعام عمال..." oninput="renderGeneralExpensesTable()">
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>التاريخ</th>
+            <th>الورشة</th>
+            <th>المبلغ</th>
+            <th>البيان</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="general-expenses-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 6. شاشة الموردين -->
+<div class="screen" id="screen-suppliers">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+      <h3 style="font-size: 15px; font-weight: 900;">إدارة الموردين</h3>
+      <button type="button" class="btn-solid" style="margin:0; width:auto; padding:7px 14px;" onclick="openAddPartyModal('supplier')">+ إضافة مورد</button>
+    </div>
+    <div class="form-group">
+      <input type="text" id="supp-list-search" class="form-input" placeholder="تصفية سريعة لاسم المورد أو الهاتف..." oninput="renderPartiesList('supplier', 'suppliers-list-container', this.value)">
+    </div>
+    <div id="suppliers-list-container"></div>
+  </div>
+</div>
+
+<!-- 7. شاشة العملاء -->
+<div class="screen" id="screen-customers">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+      <h3 style="font-size: 15px; font-weight: 900;">إدارة العملاء والمشترين</h3>
+      <button type="button" class="btn-solid" style="margin:0; width:auto; padding:7px 14px;" onclick="openAddPartyModal('customer')">+ إضافة عميل</button>
+    </div>
+    <div class="form-group">
+      <input type="text" id="cust-list-search" class="form-input" placeholder="تصفية سريعة لاسم العميل أو الهاتف..." oninput="renderPartiesList('customer', 'customers-list-container', this.value)">
+    </div>
+    <div id="customers-list-container"></div>
+  </div>
+</div>
+
+<!-- 8. شاشة المقاولين -->
+<div class="screen" id="screen-contractors">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+      <h3 style="font-size: 15px; font-weight: 900;">إدارة المقاولين</h3>
+      <button type="button" class="btn-solid" style="margin:0; width:auto; padding:7px 14px;" onclick="openAddPartyModal('contractor')">+ إضافة مقاول</button>
+    </div>
+    <div class="form-group">
+      <input type="text" id="cont-list-search" class="form-input" placeholder="تصفية سريعة لاسم المقاول..." oninput="renderPartiesList('contractor', 'contractors-list-container', this.value)">
+    </div>
+    <div id="contractors-list-container"></div>
+  </div>
+</div>
+
+<!-- 9. شاشة الموظفين -->
+<div class="screen" id="screen-employees">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+      <h3 style="font-size: 15px; font-weight: 900;">إدارة الموظفين والرواتب</h3>
+      <button type="button" class="btn-solid" style="margin:0; width:auto; padding:7px 14px;" onclick="openAddPartyModal('employee')">+ إضافة موظف</button>
+    </div>
+    <div class="form-group">
+      <input type="text" id="emp-list-search" class="form-input" placeholder="تصفية سريعة لاسم الموظف..." oninput="renderPartiesList('employee', 'employees-list-container', this.value)">
+    </div>
+    <div id="employees-list-container"></div>
+  </div>
+</div>
+
+<!-- 10. شاشة المواد -->
+<div class="screen" id="screen-materials">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+      <h3 style="font-size: 15px; font-weight: 900;">دليل المواد والوحدات</h3>
+      <button type="button" class="btn-solid" style="margin:0; width:auto; padding:7px 14px;" onclick="openAddMaterialModal()">+ إضافة مادة جديدة</button>
+    </div>
+    <div style="background:var(--surface-elevated); padding:10px; border-radius:var(--radius-sm); font-size:11px; margin-bottom:10px; border:1px solid var(--border-subtle);">
+      اضغط على أي مادة لمتابعة كافة عمليات الشراء والكميات الموردة منها للورشات وتصدير تقرير PDF خاص بها.
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>اسم المادة</th>
+            <th>الوحدة الكبرى</th>
+            <th>وحدة التجزئة</th>
+            <th>معامل التحويل</th>
+            <th>إجمالي المشتريات</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="materials-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 11. شاشة ملف المادة التفصيلي -->
+<div class="screen" id="screen-material-detail">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <button type="button" class="btn-action-pill" onclick="goTo('screen-materials')">➔ العودة للمواد</button>
+      <button type="button" class="btn-action-pill" onclick="exportMaterialDetailPDF()">تصدير تقرير المادة PDF</button>
+    </div>
+    <div style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; margin-bottom:12px;">
+      <h2 style="font-size:17px; font-weight:900;" id="mat-detail-title">---</h2>
+      <div style="font-size:12px; color:var(--text-muted); margin-top:4px;" id="mat-detail-meta">---</div>
+      <div style="margin-top:8px; font-size:14px; font-weight:800; color:var(--info);" id="mat-detail-total-cost">إجمالي قيمة المشتريات: $0.00</div>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>التاريخ</th>
+            <th>المورد</th>
+            <th>الورشة</th>
+            <th>الكمية</th>
+            <th>المبلغ</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="mat-detail-tx-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 12. شاشة التقارير التفصيلية الشاملة -->
+<div class="screen" id="screen-reports">
+  <div style="padding: 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+      <h3 style="font-size: 15px; font-weight: 900;">التقارير المالية والتشغيلية الشاملة</h3>
+      <button type="button" class="btn-action-pill" onclick="exportActiveReportPDF()">تصدير التقرير PDF</button>
+    </div>
+
+    <div style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px; margin-bottom:12px;">
+      <div class="form-group">
+        <label class="form-label">اختر نوع التقرير *</label>
+        <select id="rep-type-select" class="form-select" onchange="renderReportsView()">
+          <option value="pnl">1. تقرير الأرباح والخسائر</option>
+          <option value="payables">2. تقرير أرصدة ومستحقات الموردين والمقاولين</option>
+          <option value="receivables">3. تقرير مستحقات العملاء (أقساط الشقق)</option>
+          <option value="cashflow">4. تقرير السيولة والنقدية الفعلية</option>
+          <option value="expenses_salaries">5. تقرير المصاريف والرواتب المدفوعة</option>
+          <option value="total_liabilities">6. تقرير الالتزامات العامة الكلية</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:6px; margin-bottom:8px;">
+        <button type="button" class="btn-action-pill" onclick="setReportQuickRange(7)">أسبوعي</button>
+        <button type="button" class="btn-action-pill" onclick="setReportQuickRange(30)">شهري</button>
+        <button type="button" class="btn-action-pill" onclick="setReportQuickRange(0)">الكل</button>
+      </div>
+      <div class="form-row">
+        <div><label class="form-label">من تاريخ</label><input type="date" id="rep-date-from" class="form-input" onchange="renderReportsView()"></div>
+        <div><label class="form-label">إلى تاريخ</label><input type="date" id="rep-date-to" class="form-input" onchange="renderReportsView()"></div>
+      </div>
+    </div>
+
+    <div id="report-view-container" style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px;"></div>
+  </div>
+</div>
+
+<!-- 13. شاشة معلومات شركة TCC وإعدادات قاعدة البيانات -->
+<div class="screen" id="screen-company-info">
+  <div style="padding: 14px;">
+    <h3 style="font-size: 15px; font-weight: 900; margin-bottom: 12px;">معلومات شركة TCC وإعدادات الاتصال</h3>
+
+    <div style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; margin-bottom:14px;">
+      <h4 style="font-size:13px; font-weight:800; margin-bottom:10px;">بيانات الترويسة والفواتير الرسمية</h4>
+      <div class="form-group">
+        <label class="form-label">اسم الشركة</label>
+        <input type="text" id="cfg-company-name" class="form-input">
+      </div>
+      <div class="form-row">
+        <div><label class="form-label">رقم الإدارة 1</label><input type="tel" id="cfg-phone-admin1" class="form-input"></div>
+        <div><label class="form-label">رقم الإدارة 2</label><input type="tel" id="cfg-phone-admin2" class="form-input"></div>
+      </div>
+      <div class="form-row" style="margin-top:8px;">
+        <div><label class="form-label">رقم إدارة المحاسبة المالية</label><input type="tel" id="cfg-phone-accounting" class="form-input"></div>
+        <div><label class="form-label">البريد الإلكتروني للشركة</label><input type="email" id="cfg-company-email" class="form-input"></div>
+      </div>
+      <div class="form-group" style="margin-top:8px;">
+        <label class="form-label">شعار الشركة (PNG / JPG)</label>
+        <input type="file" id="cfg-company-logo-input" accept="image/*" class="form-input" onchange="handleLogoUpload(event)">
+        <div id="cfg-logo-preview-box" style="margin-top:8px; text-align:center;"></div>
+      </div>
+      <button type="button" class="btn-solid" onclick="saveCompanyInfoSettings()">حفظ معلومات الترويسة والشعار</button>
+    </div>
+
+    <div style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px;">
+      <h4 style="font-size:13px; font-weight:800; margin-bottom:8px;">مفاتيح الاتصال بقاعدة البيانات (Supabase)</h4>
+      <div class="form-group">
+        <label class="form-label">رابط المشروع (Project URL)</label>
+        <input type="url" id="cfg-db-url" class="form-input" placeholder="https://xyz.supabase.co">
+      </div>
+      <div class="form-group">
+        <label class="form-label">مفتاح الوصول (Anon Key)</label>
+        <textarea id="cfg-db-key" class="form-textarea" style="height:65px; font-family:monospace; font-size:11px;"></textarea>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn-solid" onclick="saveDatabaseConfig()">حفظ وربط السحابة</button>
+        <button type="button" class="btn-solid btn-secondary" onclick="disconnectDatabase()">الوضع المحلي</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 14. شاشة ملف الحساب الفردي (مورد / عميل / مقاول / موظف) -->
+<div class="screen" id="screen-party-profile">
+  <div style="padding: 14px;">
+    <button type="button" class="btn-action-pill" style="margin-bottom:10px;" onclick="goTo(currentPartyReturnScreen)">➔ رجوع للقائمة</button>
+    
+    <div style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <h2 style="font-size:17px; font-weight:900;" id="prof-party-name">---</h2>
+          <div style="font-size:11px; color:var(--text-muted);" id="prof-party-meta">---</div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn-action-pill" onclick="exportPartyStatementPDF()">كشف حساب PDF</button>
+          <button type="button" class="btn-action-pill" style="color:var(--danger);" onclick="deleteCurrentPartyConfirm()">حذف الحساب</button>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; text-align:center;">
+        <div style="background:var(--surface-elevated); padding:8px; border-radius:var(--radius-sm);">
+          <div style="font-size:10px; color:var(--text-muted);" id="prof-lbl-total">إجمالي المستحق</div>
+          <div style="font-size:14px; font-weight:900; direction:ltr;" id="prof-val-total">$0.00</div>
+        </div>
+        <div style="background:var(--surface-elevated); padding:8px; border-radius:var(--radius-sm);">
+          <div style="font-size:10px; color:var(--text-muted);" id="prof-lbl-paid">إجمالي المسدد</div>
+          <div style="font-size:14px; font-weight:900; color:var(--success); direction:ltr;" id="prof-val-paid">$0.00</div>
+        </div>
+        <div style="background:var(--surface-elevated); padding:8px; border-radius:var(--radius-sm);">
+          <div style="font-size:10px; color:var(--text-muted);">الرصيد المتبقي</div>
+          <div style="font-size:14px; font-weight:900; color:var(--danger); direction:ltr;" id="prof-party-balance">$0.00</div>
+        </div>
+      </div>
+
+      <!-- أزرار العمليات المباشرة داخل الحساب -->
+      <div style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border-subtle); display:flex; gap:6px; flex-wrap:wrap;" id="party-direct-actions-toolbar"></div>
+    </div>
+
+    <div id="prof-customer-apartments-box" style="display:none; margin-bottom:12px;">
+      <h4 style="font-size:13px; font-weight:800; margin-bottom:6px;">الشقق التي اشتراها العميل</h4>
+      <div id="prof-customer-apartments-list"></div>
+    </div>
+
+    <!-- بحث وفلترة داخل كشف الطرف -->
+    <div style="background:var(--surface-card); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:10px; margin-bottom:10px;">
+      <div class="form-row">
+        <input type="text" id="prof-tx-search" class="form-input" placeholder="بحث في عمليات هذا الحساب..." oninput="renderPartyProfileTransactions()">
+        <div style="display:flex; gap:4px;">
+          <input type="date" id="prof-tx-from" class="form-input" onchange="renderPartyProfileTransactions()">
+          <input type="date" id="prof-tx-to" class="form-input" onchange="renderPartyProfileTransactions()">
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>التاريخ</th>
+            <th>النوع</th>
+            <th>الورشة</th>
+            <th>المبلغ</th>
+            <th>البيان</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="prof-tx-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- شريط التنقل السفلي -->
+<nav class="bottom-nav-bar">
+  <button type="button" class="nav-action-item active" id="nav-btn-home" onclick="goTo('screen-home')">
+    <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/></svg>
+    <span>الرئيسية</span>
+  </button>
+  <button type="button" class="nav-action-item" id="nav-btn-projects" onclick="goTo('screen-projects')">
+    <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l8-4v18M13 11l6 3v7"/></svg>
+    <span>الورشات</span>
+  </button>
+  <button type="button" class="nav-action-center-btn" onclick="openModal('modal-quick-action-menu')" title="عملية جديدة">+</button>
+  <button type="button" class="nav-action-item" id="nav-btn-tx" onclick="goTo('screen-transactions')">
+    <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+    <span>العمليات</span>
+  </button>
+  <button type="button" class="nav-action-item" onclick="openDrawer()">
+    <svg class="svg-icon" width="20" height="20" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <span>الأقسام</span>
+  </button>
+</nav>
+
+<!-- القائمة الجانبية -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="side-drawer" id="side-drawer">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; border-bottom:1px solid var(--border-subtle); padding-bottom:10px;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="header-logo-badge">TCC</div>
+      <div style="font-weight:900; font-size:14px;">أقسام نظام TCC</div>
+    </div>
+    <button type="button" class="close-btn" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-item" onclick="navigateFromDrawer('screen-home')">الرئيسية</div>
+  <div class="drawer-item" onclick="navigateFromDrawer('screen-transactions')">العمليات وسجل الحركات</div>
+  <div class="drawer-item" onclick="navigateFromDrawer('screen-projects')">الورشات والشقق</div>
+  <div class="drawer-item" onclick="navigateFromDrawer('screen-general-expenses')">المصاريف العامة</div>
+  <div class="drawer-item" onclick="navigateFromDrawer('screen-suppliers')">الموردين</div>
+  <div class="drawer-item" onclick="navigateFromDrawer('screen-customers')">العملاء</div>
+  <div class="drawer-item" onclick="navigateFromDrawer('screen-contractors')">المقاولين</div>
+  <div class="drawer-item" onclick="navigateFromDrawer('screen-employees')">الموظفين والرواتب</div>
+  <div class="drawer-item" onclick="navigateFromDrawer('screen-materials')">المواد والوحدات</div>
+  <div class="drawer-item" onclick="navigateFromDrawer('screen-reports')">التقارير الشاملة</div>
+  <div class="drawer-item" style="color:var(--info);" onclick="navigateFromDrawer('screen-company-info')">معلومات TCC وقاعدة البيانات</div>
+  <div class="drawer-item" style="color:var(--warning);" onclick="openEmergencyBackupModal()">نسخ الطوارئ الاحتياطي (JSON)</div>
+</div>
+
+<!-- ==================== النوافذ المنبثقة (Modals) ==================== -->
+
+<!-- 1. نافذة الزر (+) السريع -->
+<div class="modal-overlay" id="modal-quick-action-menu">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>إجراء عملية جديدة</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-quick-action-menu')">✕</button>
+    </div>
+    <div class="quick-menu-grid">
+      <div class="quick-menu-item" onclick="openPurchaseModal()">زر شراء (فاتورة شراء)</div>
+      <div class="quick-menu-item" onclick="openSaleModal()">زر بيع (فاتورة بيع شقة)</div>
+      <div class="quick-menu-item" onclick="openQuickExpenseModal()">زر مصروف (مصروف ورشة)</div>
+      <div class="quick-menu-item" onclick="openDirectPaymentModal()">زر دفعة (عميل / مورد)</div>
+      <div class="quick-menu-item" onclick="openSalaryModal()">زر راتب (موظفين)</div>
+      <div class="quick-menu-item" onclick="openContractorModal()">زر حساب مقاول</div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. نافذة فاتورة شراء مواد (تصفية ذكية للمورد والورشة والمادة + سعر مرن) -->
+<div class="modal-overlay" id="modal-purchase-invoice">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>فاتورة شراء مواد</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-purchase-invoice')">✕</button>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label">اسم المورد * (اكتب لتصفية الموردين)</label>
+      <input type="text" id="purch-supplier-input" class="form-input" placeholder="اكتب اسم المورد..." autocomplete="off">
+      <input type="hidden" id="purch-supplier-id">
+      <div class="combo-dropdown" id="purch-supplier-drop"></div>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label">اسم الورشة * (اكتب لتصفية الورشات)</label>
+      <input type="text" id="purch-project-input" class="form-input" placeholder="اكتب اسم الورشة..." autocomplete="off">
+      <input type="hidden" id="purch-project-id">
+      <div class="combo-dropdown" id="purch-project-drop"></div>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label">المادة المشتراة * (اكتب لتصفية المواد)</label>
+      <input type="text" id="purch-material-input" class="form-input" placeholder="اكتب اسم المادة (أسمنت، حديد، بلوك...)" autocomplete="off">
+      <input type="hidden" id="purch-material-id">
+      <div class="combo-dropdown" id="purch-material-drop"></div>
+    </div>
+
+    <div style="background:var(--surface-elevated); padding:10px; border-radius:var(--radius-sm); margin-bottom:10px; border:1px solid var(--border-subtle);">
+      <div class="form-row">
+        <div>
+          <label class="form-label">سعر الوحدة الكبرى ($) (مرن قابل للتعديل) *</label>
+          <input type="number" id="purch-unit-price" class="form-input" placeholder="مثال: 650" step="any" oninput="calculatePurchaseTotal()">
+        </div>
+        <div>
+          <label class="form-label">طريقة احتساب الكمية</label>
+          <select id="purch-unit-mode" class="form-select" onchange="calculatePurchaseTotal()">
+            <option value="major">بالوحدة الكبرى (طن / متر / حبة)</option>
+            <option value="minor">بوحدة التجزئة (كيس / كغ)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:8px;">
+        <div>
+          <label class="form-label">الكمية المشتراة *</label>
+          <input type="number" id="purch-qty" class="form-input" placeholder="مثال: 50" step="any" oninput="calculatePurchaseTotal()">
+        </div>
+        <div>
+          <label class="form-label">معامل التحويل (كم بالتجزئة)</label>
+          <input type="number" id="purch-conv-factor" class="form-input" value="1" step="any" oninput="calculatePurchaseTotal()">
+        </div>
+      </div>
+      <div style="font-size:11px; color:var(--info); margin-top:6px;" id="purch-formula-hint"></div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label class="form-label">المبلغ الإجمالي ($)</label>
+        <input type="number" id="purch-total-raw" class="form-input" step="any" oninput="calculatePurchaseNet()">
+      </div>
+      <div>
+        <label class="form-label">حسم عام ($)</label>
+        <input type="number" id="purch-discount" class="form-input" placeholder="0.00" step="any" oninput="calculatePurchaseNet()">
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:8px;">
+      <div>
+        <label class="form-label">الصافي المطلوب ($)</label>
+        <input type="number" id="purch-net-total" class="form-input" readonly style="font-weight:900;">
+      </div>
+      <div>
+        <label class="form-label">دفعة مسددة عن الفاتورة ($)</label>
+        <input type="number" id="purch-paid-now" class="form-input" placeholder="0.00" step="any">
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:8px;">
+      <div>
+        <label class="form-label">التاريخ</label>
+        <input type="date" id="purch-date" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">ملاحظات البيان</label>
+        <input type="text" id="purch-notes" class="form-input" placeholder="بيان إضافي...">
+      </div>
+    </div>
+
+    <button type="button" class="btn-solid" onclick="savePurchaseInvoice()">حفظ ومعاينة الفاتورة</button>
+  </div>
+</div>
+
+<!-- 3. نافذة فاتورة بيع شقة (تصفية ذكية للعميل والورشة والشقة) -->
+<div class="modal-overlay" id="modal-sale-invoice">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>فاتورة بيع شقة</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-sale-invoice')">✕</button>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label">اسم العميل (المشتري) * (اكتب للتصفية)</label>
+      <input type="text" id="sale-customer-input" class="form-input" placeholder="اكتب اسم العميل..." autocomplete="off">
+      <input type="hidden" id="sale-customer-id">
+      <div class="combo-dropdown" id="sale-customer-drop"></div>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label">اسم الورشة * (اكتب لتصفية الورشات)</label>
+      <input type="text" id="sale-project-input" class="form-input" placeholder="اكتب اسم الورشة..." autocomplete="off">
+      <input type="hidden" id="sale-project-id">
+      <div class="combo-dropdown" id="sale-project-drop"></div>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label">اسم الشقة المتاحة * (تصفية تلقائية)</label>
+      <input type="text" id="sale-apartment-input" class="form-input" placeholder="اختر أو اكتب اسم الشقة..." autocomplete="off">
+      <input type="hidden" id="sale-apartment-id">
+      <div class="combo-dropdown" id="sale-apartment-drop"></div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label class="form-label">المساحة (م²)</label>
+        <input type="number" id="sale-area-sqm" class="form-input" placeholder="120" step="any" oninput="calculateSaleTotal()">
+      </div>
+      <div>
+        <label class="form-label">سعر المتر ($)</label>
+        <input type="number" id="sale-price-per-m" class="form-input" placeholder="450" step="any" oninput="calculateSaleTotal()">
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:8px;">
+      <div>
+        <label class="form-label">الإجمالي المحسوب ($)</label>
+        <input type="number" id="sale-calc-total" class="form-input" step="any" oninput="calculateSaleNet()">
+      </div>
+      <div>
+        <label class="form-label">حسم عام ($)</label>
+        <input type="number" id="sale-discount" class="form-input" placeholder="0.00" step="any" oninput="calculateSaleNet()">
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:8px;">
+      <div>
+        <label class="form-label">الصافي النهائي ($)</label>
+        <input type="number" id="sale-net-total" class="form-input" readonly style="font-weight:900;">
+      </div>
+      <div>
+        <label class="form-label">الدفعة الأولى المقبوضة ($)</label>
+        <input type="number" id="sale-down-payment" class="form-input" placeholder="0.00" step="any">
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top:8px;">
+      <div>
+        <label class="form-label">تاريخ العقد</label>
+        <input type="date" id="sale-date" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">ملاحظات البيع</label>
+        <input type="text" id="sale-notes" class="form-input" placeholder="شروط الاتفاق...">
+      </div>
+    </div>
+
+    <button type="button" class="btn-solid" onclick="saveSaleInvoice()">حفظ وتوثيق البيع</button>
+  </div>
+</div>
+
+<!-- 4. نافذة تسجيل مصروف ورشة -->
+<div class="modal-overlay" id="modal-expense">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>تسجيل مصروف ورشة / مصروف عام</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-expense')">✕</button>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label">اسم الورشة * (اكتب لتصفية الورشات)</label>
+      <input type="text" id="exp-project-input" class="form-input" placeholder="اكتب اسم الورشة..." autocomplete="off">
+      <input type="hidden" id="exp-project-id">
+      <div class="combo-dropdown" id="exp-project-drop"></div>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label class="form-label">المبلغ ($) *</label>
+        <input type="number" id="exp-amount" class="form-input" placeholder="0.00" step="any">
+      </div>
+      <div>
+        <label class="form-label">التاريخ</label>
+        <input type="date" id="exp-date" class="form-input">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:8px;">
+      <label class="form-label">بيان المصروف بالتفصيل *</label>
+      <textarea id="exp-notes" class="form-textarea" placeholder="أجور نقل الخشب، محروقات، طعام عمال..."></textarea>
+    </div>
+
+    <button type="button" class="btn-solid" onclick="saveExpense()">حفظ المصروف ومعاينته</button>
+  </div>
+</div>
+
+<!-- 5. نافذة دفعة مباشرة (عميل / مورد) -->
+<div class="modal-overlay" id="modal-direct-payment">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modal-payment-heading">تسجيل دفعة مالية</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-direct-payment')">✕</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-bottom:10px;">
+      <button type="button" class="btn-action-pill active" id="pay-btn-cust" onclick="setPaymentMode('دفعة_عميل')">قبض من عميل</button>
+      <button type="button" class="btn-action-pill" id="pay-btn-supp-pay" onclick="setPaymentMode('دفعة_مورد')">سداد لمورد (صرف)</button>
+      <button type="button" class="btn-action-pill" id="pay-btn-supp-rec" onclick="setPaymentMode('مرتجع_مورد')">قبض من مورد</button>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label" id="pay-party-label">اسم العميل * (اكتب للتصفية)</label>
+      <input type="text" id="pay-party-input" class="form-input" placeholder="اكتب الاسم للتصفية..." autocomplete="off">
+      <input type="hidden" id="pay-party-id">
+      <div class="combo-dropdown" id="pay-party-drop"></div>
+    </div>
+
+    <div class="form-group" id="pay-customer-apt-grp">
+      <label class="form-label">الشقة الخاصة بالعميل (اختياري)</label>
+      <select id="pay-customer-apt-select" class="form-select"></select>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label class="form-label">المبلغ ($) *</label>
+        <input type="number" id="pay-amount" class="form-input" placeholder="0.00" step="any">
+      </div>
+      <div>
+        <label class="form-label">التاريخ</label>
+        <input type="date" id="pay-date" class="form-input">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:8px;">
+      <label class="form-label">البيان والملاحظات</label>
+      <input type="text" id="pay-notes" class="form-input" placeholder="دفعة نقدية على الحساب...">
+    </div>
+
+    <button type="button" class="btn-solid" onclick="saveDirectPayment()">حفظ الدفعة ومعاينة السند</button>
+  </div>
+</div>
+
+<!-- 6. نافذة الرواتب والموظفين -->
+<div class="modal-overlay" id="modal-salary">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>عملية راتب / صرف لموظف</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-salary')">✕</button>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label">اسم الموظف * (اكتب لتصفية الموظفين)</label>
+      <input type="text" id="sal-employee-input" class="form-input" placeholder="اكتب اسم الموظف..." autocomplete="off">
+      <input type="hidden" id="sal-employee-id">
+      <div class="combo-dropdown" id="sal-employee-drop"></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-bottom:10px;">
+      <button type="button" class="btn-action-pill active" id="sal-btn-accrue" onclick="setSalaryType('استحقاق_راتب')">تسجيل راتب (له)</button>
+      <button type="button" class="btn-action-pill" id="sal-btn-pay" onclick="setSalaryType('صرف_راتب')">صرف نقدي (مدفوع)</button>
+      <button type="button" class="btn-action-pill" id="sal-btn-deduct" onclick="setSalaryType('خصم_موظف')">خصم على الموظف</button>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label class="form-label">المبلغ ($) *</label>
+        <input type="number" id="sal-amount" class="form-input" placeholder="0.00" step="any">
+      </div>
+      <div>
+        <label class="form-label">التاريخ</label>
+        <input type="date" id="sal-date" class="form-input">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:8px;">
+      <label class="form-label">البيان</label>
+      <input type="text" id="sal-notes" class="form-input" placeholder="راتب شهر... أو سلفة...">
+    </div>
+
+    <button type="button" class="btn-solid" onclick="saveSalary()">حفظ العملية ومعاينة السند</button>
+  </div>
+</div>
+
+<!-- 7. نافذة حساب مقاول -->
+<div class="modal-overlay" id="modal-contractor-account">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>تسجيل حساب أو دفعة لمقاول</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-contractor-account')">✕</button>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label">اسم المقاول * (اكتب لتصفية المقاولين)</label>
+      <input type="text" id="cont-party-input" class="form-input" placeholder="اكتب اسم المقاول..." autocomplete="off">
+      <input type="hidden" id="cont-party-id">
+      <div class="combo-dropdown" id="cont-party-drop"></div>
+    </div>
+
+    <div class="form-group combo-wrap">
+      <label class="form-label">اسم الورشة * (اكتب لتصفية الورشات)</label>
+      <input type="text" id="cont-project-input" class="form-input" placeholder="اكتب اسم الورشة..." autocomplete="off">
+      <input type="hidden" id="cont-project-id">
+      <div class="combo-dropdown" id="cont-project-drop"></div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+      <button type="button" class="btn-action-pill active" id="cont-btn-accrue" onclick="setContractorTxType('استحقاق_مقاول')">استحقاق أعمال (رصيد له)</button>
+      <button type="button" class="btn-action-pill" id="cont-btn-pay" onclick="setContractorTxType('سداد_مقاول')">سداد دفعة نقدية (مصروف)</button>
+    </div>
+
+    <div class="form-row">
+      <div>
+        <label class="form-label">المبلغ ($) *</label>
+        <input type="number" id="cont-amount" class="form-input" placeholder="0.00" step="any">
+      </div>
+      <div>
+        <label class="form-label">التاريخ</label>
+        <input type="date" id="cont-date" class="form-input">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top:8px;">
+      <label class="form-label">بيان توضيحي حول العملية *</label>
+      <textarea id="cont-notes" class="form-textarea" placeholder="تفاصيل الأعمال المنفذة أو الدفعة..."></textarea>
+    </div>
+
+    <button type="button" class="btn-solid" onclick="saveContractorTx()">حفظ العملية ومعاينة السند</button>
+  </div>
+</div>
+
+<!-- 8. نافذة بطاقة تفاصيل الشقة وجدول دفعاتها -->
+<div class="modal-overlay" id="modal-apartment-detail-card">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>بطاقة تفاصيل الشقة وسجل الدفعات</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-apartment-detail-card')">✕</button>
+    </div>
+
+    <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2 style="font-size:16px; font-weight:900;" id="apt-card-name">---</h2>
+          <div style="font-size:11px; color:var(--text-muted);" id="apt-card-project">---</div>
+        </div>
+        <div id="apt-card-status-badge"></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; font-size:12px;">
+        <div>المشتري: <strong id="apt-card-buyer">---</strong></div>
+        <div>المساحة: <strong id="apt-card-area">---</strong></div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin-top:10px; text-align:center;">
+        <div style="background:var(--surface-card); padding:6px; border-radius:var(--radius-sm);">
+          <div style="font-size:10px; color:var(--text-muted);">السعر الإجمالي</div>
+          <div style="font-size:13px; font-weight:900; direction:ltr;" id="apt-card-price">$0.00</div>
+        </div>
+        <div style="background:var(--surface-card); padding:6px; border-radius:var(--radius-sm);">
+          <div style="font-size:10px; color:var(--text-muted);">إجمالي المدفوع</div>
+          <div style="font-size:13px; font-weight:900; color:var(--success); direction:ltr;" id="apt-card-paid">$0.00</div>
+        </div>
+        <div style="background:var(--surface-card); padding:6px; border-radius:var(--radius-sm);">
+          <div style="font-size:10px; color:var(--text-muted);">المتبقي</div>
+          <div style="font-size:13px; font-weight:900; color:var(--danger); direction:ltr;" id="apt-card-remaining">$0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <h4 style="font-size:12px; font-weight:800;">جدول الدفعات وتواريخها</h4>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="btn-action-pill" onclick="exportApartmentStatementPDF(currentViewingAptId)">تقرير الشقة PDF</button>
+        <button type="button" class="btn-action-pill" style="color:var(--danger);" id="btn-apt-cancel-contract" onclick="cancelApartmentSaleContract(currentViewingAptId)">فسخ عقد البيع</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>#</th><th>التاريخ</th><th>البيان</th><th>المبلغ المسدد</th></tr>
+        </thead>
+        <tbody id="apt-card-payments-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 9. نافذة تعديل أي عملية وتاريخها -->
+<div class="modal-overlay" id="modal-edit-tx">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>تعديل بيانات وتاريخ العملية</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-edit-tx')">✕</button>
+    </div>
+    <input type="hidden" id="edit-tx-id">
+    <div class="form-row">
+      <div>
+        <label class="form-label">التاريخ *</label>
+        <input type="date" id="edit-tx-date" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">المبلغ الإجمالي ($) *</label>
+        <input type="number" id="edit-tx-amount" class="form-input" step="any">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:8px;">
+      <label class="form-label">المدفوع نقداً ضمن الفاتورة ($) (إن وجد)</label>
+      <input type="number" id="edit-tx-paid" class="form-input" step="any">
+    </div>
+    <div class="form-group">
+      <label class="form-label">البيان والتفاصيل</label>
+      <textarea id="edit-tx-notes" class="form-textarea"></textarea>
+    </div>
+    <button type="button" class="btn-solid" onclick="saveEditedTransaction()">حفظ التعديلات وتحديث الأرصدة</button>
+  </div>
+</div>
+
+<!-- 10. نافذة إضافة ورشة وتوليد الشقق -->
+<div class="modal-overlay" id="modal-add-project">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>إضافة ورشة جديدة وتوليد الشقق</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-add-project')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">اسم الورشة *</label>
+      <input type="text" id="new-proj-name" class="form-input" placeholder="مثال: ورشة البناء الحديث">
+    </div>
+    <div class="form-group">
+      <label class="form-label">عنوان الورشة</label>
+      <input type="text" id="new-proj-location" class="form-input" placeholder="العنوان التفصيلي...">
+    </div>
+    <div class="form-row">
+      <div>
+        <label class="form-label">عدد الطوابق</label>
+        <input type="number" id="new-proj-floors" class="form-input" value="4" min="1">
+      </div>
+      <div>
+        <label class="form-label">إجمالي عدد الشقق</label>
+        <input type="number" id="new-proj-total-apts" class="form-input" value="8" min="1">
+      </div>
+    </div>
+    <button type="button" class="btn-solid btn-secondary" onclick="generateApartmentNamesPreview()">توليد مسميات الشقق تلقائياً</button>
+    <div class="form-group" style="margin-top:8px;">
+      <label class="form-label">مسميات الشقق (يمكنك تعديل المسميات قبل الحفظ)</label>
+      <textarea id="new-proj-apts-names" class="form-textarea" style="height:110px;"></textarea>
+    </div>
+    <button type="button" class="btn-solid" onclick="saveNewProject()">حفظ الورشة والشقق</button>
+  </div>
+</div>
+
+<!-- 11. نافذة إضافة طرف (مورد / عميل / مقاول / موظف) -->
+<div class="modal-overlay" id="modal-add-party">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="add-party-title">إضافة حساب جديد</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-add-party')">✕</button>
+    </div>
+    <input type="hidden" id="add-party-type">
+    <div class="form-group">
+      <label class="form-label">الاسم الكامل *</label>
+      <input type="text" id="add-party-name" class="form-input" placeholder="ادخل الاسم...">
+    </div>
+    <div class="form-row">
+      <div>
+        <label class="form-label">رقم الهاتف (اختياري)</label>
+        <input type="tel" id="add-party-phone" class="form-input" placeholder="+963...">
+      </div>
+      <div>
+        <label class="form-label">العنوان (اختياري)</label>
+        <input type="text" id="add-party-address" class="form-input" placeholder="العنوان...">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:8px;">
+      <label class="form-label">رصيد افتتاحي سابق ($) (اختياري)</label>
+      <input type="number" id="add-party-open-balance" class="form-input" placeholder="0.00" step="any">
+    </div>
+    <button type="button" class="btn-solid" onclick="saveNewParty()">حفظ الحساب</button>
+  </div>
+</div>
+
+<!-- 12. نافذة إضافة مادة -->
+<div class="modal-overlay" id="modal-add-material">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>إضافة مادة جديدة</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-add-material')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">اسم المادة *</label>
+      <input type="text" id="mat-name" class="form-input" placeholder="أسمنت، حديد، بلوك، رمل...">
+    </div>
+    <div class="form-row">
+      <div>
+        <label class="form-label">الوحدة الكبرى الأساسية *</label>
+        <input type="text" id="mat-major-unit" class="form-input" placeholder="طن / متر / حبة">
+      </div>
+      <div>
+        <label class="form-label">وحدة التجزئة (إن وجدت)</label>
+        <input type="text" id="mat-minor-unit" class="form-input" placeholder="كيس / كغ / حبة">
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:8px;">
+      <div>
+        <label class="form-label">كم وحدة تجزئة في الكبرى؟</label>
+        <input type="number" id="mat-conversion-rate" class="form-input" value="1" step="any">
+      </div>
+      <div>
+        <label class="form-label">سعر استرشادي اختياري ($)</label>
+        <input type="number" id="mat-major-price" class="form-input" placeholder="اختياري" step="any">
+      </div>
+    </div>
+    <button type="button" class="btn-solid" onclick="saveNewMaterial()">حفظ المادة</button>
+  </div>
+</div>
+
+<!-- 13. نافذة معاينة الفاتورة ومشاركتها -->
+<div class="modal-overlay" id="modal-tx-preview">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>معاينة السند / الفاتورة</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-tx-preview')">✕</button>
+    </div>
+    <div id="tx-preview-card" style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; margin-bottom:12px; font-size:13px; line-height:1.8;"></div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button type="button" class="btn-solid btn-whatsapp" onclick="shareTxWhatsApp()">مشاركة تفاصيل العملية عبر واتساب</button>
+      <button type="button" class="btn-solid" style="background:var(--surface-card); color:var(--text-main); border:1px solid var(--border-strong);" onclick="exportCurrentTxPDF()">تصدير ومشاركة ملف PDF مع رمز QR</button>
+      <button type="button" class="btn-solid" onclick="closeModal('modal-tx-preview')">حفظ وإغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- 14. نافذة نسخ الطوارئ الاحتياطي -->
+<div class="modal-overlay" id="modal-emergency-backup">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>قاعدة بيانات الطوارئ والنسخ الاحتياطي</h3>
+      <button type="button" class="close-btn" onclick="closeModal('modal-emergency-backup')">✕</button>
+    </div>
+    <button type="button" class="btn-solid" onclick="exportEmergencyJSONBackup()">تحميل نسخة احتياطية كاملة (JSON)</button>
+    <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--border-subtle);">
+      <label class="form-label">استعادة البيانات من ملف احتياطي</label>
+      <input type="file" id="emergency-restore-file" accept=".json" class="form-input" onchange="importEmergencyJSONBackup(event)">
+    </div>
+  </div>
+</div>
+
+<div id="pdf-render-canvas"></div>
+
+<script>
+// ==================== محرك التخزين الآمن وحالة التطبيق ====================
+var DB_KEY_PROJECTS = 'tcc_projects_v6';
+var DB_KEY_APARTMENTS = 'tcc_apartments_v6';
+var DB_KEY_PARTIES = 'tcc_parties_v6';
+var DB_KEY_MATERIALS = 'tcc_materials_v6';
+var DB_KEY_TRANSACTIONS = 'tcc_transactions_v6';
+var DB_KEY_SETTINGS = 'tcc_settings_v6';
+
+var gProjects = [];
+var gApartments = [];
+var gParties = [];
+var gMaterials = [];
+var gTransactions = [];
+var gSettings = {
+  company_name: 'TCC للمقاولات العامة والتطوير العقاري',
+  phone_admin1: '',
+  phone_admin2: '',
+  phone_accounting: '',
+  company_email: '',
+  logo_url: null,
+  supabase_url: '',
+  supabase_key: ''
+};
+
+var supabaseClient = null;
+var currentViewingProject = null;
+var currentViewingParty = null;
+var currentViewingMaterial = null;
+var currentPartyReturnScreen = 'screen-home';
+var activePreviewTx = null;
+var currentViewingAptId = null;
+
+var currentPaymentMode = 'دفعة_عميل';
+var currentSalaryType = 'استحقاق_راتب';
+var currentContractorTxType = 'استحقاق_مقاول';
+var lastFilteredTransactions = null;
+
+function safeGetStorage(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function safeSetStorage(key, val) {
+  try { localStorage.setItem(key, val); } catch (e) {}
+}
+
+function loadLocalDatabase() {
+  try {
+    gProjects = JSON.parse(safeGetStorage(DB_KEY_PROJECTS)) || [];
+    gApartments = JSON.parse(safeGetStorage(DB_KEY_APARTMENTS)) || [];
+    gParties = JSON.parse(safeGetStorage(DB_KEY_PARTIES)) || [];
+    gMaterials = JSON.parse(safeGetStorage(DB_KEY_MATERIALS)) || [];
+    gTransactions = JSON.parse(safeGetStorage(DB_KEY_TRANSACTIONS)) || [];
+  } catch (e) {}
+}
+
+function saveLocalDatabase() {
+  safeSetStorage(DB_KEY_PROJECTS, JSON.stringify(gProjects));
+  safeSetStorage(DB_KEY_APARTMENTS, JSON.stringify(gApartments));
+  safeSetStorage(DB_KEY_PARTIES, JSON.stringify(gParties));
+  safeSetStorage(DB_KEY_MATERIALS, JSON.stringify(gMaterials));
+  safeSetStorage(DB_KEY_TRANSACTIONS, JSON.stringify(gTransactions));
+  renderDashboardStats();
+  syncToSupabaseIfConnected();
+}
+
+function loadCompanySettings() {
+  try {
+    var saved = safeGetStorage(DB_KEY_SETTINGS);
+    if (saved) Object.assign(gSettings, JSON.parse(saved));
+  } catch (e) {}
+  updateCompanyHeadersAndFields();
+}
+
+function updateCompanyHeadersAndFields() {
+  var hName = document.getElementById('header-company-name');
+  if (hName) hName.textContent = gSettings.company_name || 'TCC للمقاولات العامة';
+  document.getElementById('cfg-company-name').value = gSettings.company_name || '';
+  document.getElementById('cfg-phone-admin1').value = gSettings.phone_admin1 || '';
+  document.getElementById('cfg-phone-admin2').value = gSettings.phone_admin2 || '';
+  document.getElementById('cfg-phone-accounting').value = gSettings.phone_accounting || '';
+  document.getElementById('cfg-company-email').value = gSettings.company_email || '';
+  document.getElementById('cfg-db-url').value = gSettings.supabase_url || '';
+  document.getElementById('cfg-db-key').value = gSettings.supabase_key || '';
+
+  var logoContainer = document.getElementById('header-brand-logo-container');
+  var logoPreview = document.getElementById('cfg-logo-preview-box');
+  if (gSettings.logo_url) {
+    logoContainer.innerHTML = '<img src="' + gSettings.logo_url + '" class="header-logo-img" alt="TCC">';
+    logoPreview.innerHTML = '<img src="' + gSettings.logo_url + '" style="max-height:55px; border-radius:6px;">';
+  } else {
+    logoContainer.innerHTML = '<div class="header-logo-badge">TCC</div>';
+    logoPreview.innerHTML = '';
+  }
+}
+
+function initSupabaseIfConfigured() {
+  try {
+    if (gSettings.supabase_url && gSettings.supabase_key && window.supabase) {
+      supabaseClient = window.supabase.createClient(gSettings.supabase_url, gSettings.supabase_key);
+      document.getElementById('header-db-status').textContent = 'قاعدة البيانات: سحابية متصلة ✓';
+    }
+  } catch (e) {}
+}
+
+async function syncToSupabaseIfConnected() {
+  if (!supabaseClient) return;
+  try {
+    await supabaseClient.from('tcc_sync_backup').upsert([{
+      id: 'primary_state_v6',
+      payload: { projects: gProjects, apartments: gApartments, parties: gParties, materials: gMaterials, transactions: gTransactions }
+    }]);
+  } catch (e) {}
+}
+
+// ==================== الملاحة والنوافذ ====================
+function goTo(screenId) {
+  var screens = document.querySelectorAll('.screen');
+  for (var i = 0; i < screens.length; i++) screens[i].classList.remove('active');
+  var target = document.getElementById(screenId);
+  if (target) target.classList.add('active');
+
+  var navs = document.querySelectorAll('.nav-action-item');
+  for (var j = 0; j < navs.length; j++) navs[j].classList.remove('active');
+  if (screenId === 'screen-home') document.getElementById('nav-btn-home').classList.add('active');
+  if (screenId === 'screen-projects') document.getElementById('nav-btn-projects').classList.add('active');
+  if (screenId === 'screen-transactions') document.getElementById('nav-btn-tx').classList.add('active');
+
+  if (screenId === 'screen-home') { renderDashboardStats(); renderRecentHomeTransactions(); }
+  else if (screenId === 'screen-transactions') {
+    bindSmartCombo('tx-filter-project-input', 'tx-filter-project', 'tx-filter-project-drop', 'project', function() { applyTxFilters(); });
+    applyTxFilters();
+  }
+  else if (screenId === 'screen-projects') renderProjectsList();
+  else if (screenId === 'screen-general-expenses') {
+    bindSmartCombo('exp-filter-project-input', 'exp-filter-project', 'exp-filter-project-drop', 'project', function() { renderGeneralExpensesTable(); });
+    renderGeneralExpensesTable();
+  }
+  else if (screenId === 'screen-suppliers') renderPartiesList('supplier', 'suppliers-list-container', '');
+  else if (screenId === 'screen-customers') renderPartiesList('customer', 'customers-list-container', '');
+  else if (screenId === 'screen-contractors') renderPartiesList('contractor', 'contractors-list-container', '');
+  else if (screenId === 'screen-employees') renderPartiesList('employee', 'employees-list-container', '');
+  else if (screenId === 'screen-materials') renderMaterialsTable();
+  else if (screenId === 'screen-reports') renderReportsView();
+  window.scrollTo(0, 0);
+}
+
+function openModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+function closeModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+function openDrawer() {
+  document.getElementById('side-drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('side-drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+function navigateFromDrawer(scr) { closeDrawer(); goTo(scr); }
+function openEmergencyBackupModal() { closeDrawer(); openModal('modal-emergency-backup'); }
+
+function showToast(msg) {
+  var el = document.getElementById('toast-el');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 2800);
+}
+
+function toggleTheme() {
+  var cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  safeSetStorage('tcc_app_theme', next);
+}
+
+// ==================== نظام التصفية والبحث الذكي الموحد (Smart Combobox) ====================
+function bindSmartCombo(inputId, hiddenId, dropId, sourceType, onSelectExtra) {
+  var inp = document.getElementById(inputId);
+  var hid = document.getElementById(hiddenId);
+  var drp = document.getElementById(dropId);
+  if (!inp || !hid || !drp) return;
+
+  function renderList() {
+    var q = inp.value.trim().toLowerCase();
+    if (!q) hid.value = '';
+    var items = [];
+
+    if (sourceType === 'project') {
+      items = gProjects.filter(function(p) {
+        return !q || p.name.toLowerCase().indexOf(q) !== -1 || (p.location && p.location.toLowerCase().indexOf(q) !== -1);
+      }).map(function(p) { return { id: p.id, label: p.name, sub: p.location || 'ورشة' }; });
+    } else if (sourceType === 'material') {
+      items = gMaterials.filter(function(m) {
+        return !q || m.name.toLowerCase().indexOf(q) !== -1;
+      }).map(function(m) { return { id: m.id, label: m.name, sub: m.major_unit + (m.minor_unit ? ' / ' + m.minor_unit : '') }; });
+    } else if (sourceType === 'apartment') {
+      var selProjId = parseInt(document.getElementById('sale-project-id').value) || 0;
+      items = gApartments.filter(function(a) {
+        if (a.status !== 'متاحة') return false;
+        if (selProjId && a.project_id !== selProjId) return false;
+        return !q || a.name.toLowerCase().indexOf(q) !== -1;
+      }).map(function(a) {
+        var pr = gProjects.find(function(x) { return x.id === a.project_id; });
+        return { id: a.id, label: a.name, sub: pr ? pr.name : '' };
+      });
+    } else {
+      items = gParties.filter(function(p) {
+        if (p.type !== sourceType) return false;
+        return !q || p.name.toLowerCase().indexOf(q) !== -1 || (p.phone && p.phone.indexOf(q) !== -1);
+      }).map(function(p) { return { id: p.id, label: p.name, sub: p.phone || '' }; });
+    }
+
+    if (!items.length) {
+      var addAction = '';
+      if (sourceType === 'project') addAction = 'openAddProjectModal()';
+      else if (sourceType === 'material') addAction = 'openAddMaterialModal()';
+      else if (sourceType !== 'apartment') addAction = 'openAddPartyModal(\'' + sourceType + '\')';
+
+      drp.innerHTML = '<div class="combo-empty"><span>لا توجد نتائج مطابقة</span>' +
+        (addAction ? '<button type="button" class="btn-action-pill" onclick="' + addAction + '">+ إضافة سريع</button>' : '') +
+        '</div>';
+      drp.style.display = 'block';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      var safeName = it.label.replace(/'/g, "\\'");
+      html += '<div class="combo-item" onclick="pickComboItem(\'' + inputId + '\',\'' + hiddenId + '\',\'' + dropId + '\',' + it.id + ',\'' + safeName + '\')">' +
+        '<strong>' + it.label + '</strong><span style="font-size:11px; color:var(--text-muted);">' + it.sub + '</span></div>';
+    }
+    drp.innerHTML = html;
+    drp.style.display = 'block';
+  }
+
+  inp._onSelectExtra = onSelectExtra || null;
+  inp.oninput = function() {
+    renderList();
+    if (inp._onSelectExtra && !inp.value.trim()) inp._onSelectExtra(null);
+  };
+  inp.onfocus = function() { renderList(); };
+}
+
+function pickComboItem(inputId, hiddenId, dropId, id, label) {
+  var inp = document.getElementById(inputId);
+  var hid = document.getElementById(hiddenId);
+  var drp = document.getElementById(dropId);
+  if (inp) inp.value = label;
+  if (hid) hid.value = id;
+  if (drp) drp.style.display = 'none';
+  if (inp && inp._onSelectExtra) inp._onSelectExtra(id);
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.combo-wrap')) {
+    var drops = document.querySelectorAll('.combo-dropdown');
+    for (var i = 0; i < drops.length; i++) drops[i].style.display = 'none';
+  }
+});
+
+// ==================== المنطق المالي وحساب الأرصدة ====================
+function getPartySummary(pId) {
+  var p = gParties.find(function(x) { return x.id === pId; });
+  if (!p) return { totalRequired: 0, totalPaid: 0, balance: 0 };
+  var txs = gTransactions.filter(function(t) { return t.party_id === pId; });
+  var req = 0, paid = 0;
+
+  if (p.type === 'customer') {
+    txs.forEach(function(t) {
+      if (t.type === 'بيع' || t.type === 'دين_افتتاحي') {
+        req += parseFloat(t.amount) || 0;
+        paid += parseFloat(t.paid) || 0;
+      } else if (t.type === 'دفعة_عميل') {
+        paid += parseFloat(t.amount) || 0;
+      }
+    });
+  } else if (p.type === 'supplier') {
+    txs.forEach(function(t) {
+      if (t.type === 'شراء' || t.type === 'مستحق_افتتاحي') {
+        req += parseFloat(t.amount) || 0;
+        paid += parseFloat(t.paid) || 0;
+      } else if (t.type === 'دفعة_مورد') {
+        paid += parseFloat(t.amount) || 0;
+      } else if (t.type === 'مرتجع_مورد') {
+        req -= parseFloat(t.amount) || 0;
+      }
+    });
+  } else if (p.type === 'contractor') {
+    txs.forEach(function(t) {
+      if (t.type === 'استحقاق_مقاول' || t.type === 'مستحق_افتتاحي') req += parseFloat(t.amount) || 0;
+      else if (t.type === 'سداد_مقاول') paid += parseFloat(t.amount) || 0;
+    });
+  } else if (p.type === 'employee') {
+    txs.forEach(function(t) {
+      if (t.type === 'استحقاق_راتب' || t.type === 'مستحق_افتتاحي') req += parseFloat(t.amount) || 0;
+      else if (t.type === 'صرف_راتب' || t.type === 'خصم_موظف') paid += parseFloat(t.amount) || 0;
+    });
+  }
+
+  return { totalRequired: req, totalPaid: paid, balance: req - paid };
+}
+
+function getPartyBalance(pId) {
+  return getPartySummary(pId).balance;
+}
+
+function renderDashboardStats() {
+  var totalApts = gApartments.length;
+  var soldApts = gApartments.filter(function(a) { return a.status === 'مباعة'; }).length;
+  var availApts = totalApts - soldApts;
+
+  document.getElementById('stat-apartments-summary').textContent = totalApts + ' شقة';
+  document.getElementById('stat-apartments-detail').textContent = 'مباعة: ' + soldApts + ' | متاحة: ' + availApts;
+
+  // المصاريف الفعلية المدفوعة فقط (الراتب غير المدفوع أو التزام المورد الآجل لا يدخل هنا إلا عند دفعه فعلياً)
+  var actualPaidOut = 0;
+  gTransactions.forEach(function(t) {
+    if (t.type === 'مصروف') actualPaidOut += (parseFloat(t.amount) || 0);
+    else if (t.type === 'شراء') actualPaidOut += (parseFloat(t.paid) || 0);
+    else if (t.type === 'دفعة_مورد') actualPaidOut += (parseFloat(t.amount) || 0);
+    else if (t.type === 'صرف_راتب') actualPaidOut += (parseFloat(t.amount) || 0);
+    else if (t.type === 'سداد_مقاول') actualPaidOut += (parseFloat(t.amount) || 0);
+    else if (t.type === 'مرتجع_مورد') actualPaidOut -= (parseFloat(t.amount) || 0);
+  });
+
+  var receivables = 0;
+  var payables = 0;
+  gParties.forEach(function(p) {
+    var b = getPartyBalance(p.id);
+    if (p.type === 'customer' && b > 0) receivables += b;
+    if ((p.type === 'supplier' || p.type === 'contractor' || p.type === 'employee') && b > 0) payables += b;
+  });
+
+  document.getElementById('stat-total-expenses').textContent = '$' + actualPaidOut.toLocaleString(undefined, {minimumFractionDigits: 2});
+  document.getElementById('stat-receivables').textContent = '$' + receivables.toLocaleString(undefined, {minimumFractionDigits: 2});
+  document.getElementById('stat-payables').textContent = '$' + payables.toLocaleString(undefined, {minimumFractionDigits: 2});
+}
+
+function renderRecentHomeTransactions() {
+  var box = document.getElementById('home-recent-transactions-list');
+  var recent = gTransactions.slice(-6).reverse();
+  if (!recent.length) {
+    box.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px;">لا توجد معاملات مسجلة حتى الآن</div>';
+    return;
+  }
+  var html = '';
+  recent.forEach(function(t) {
+    html += '<div class="card-row-item" onclick="openTxPreviewModal(' + t.id + ')">' +
+      '<div><div style="font-weight:800; font-size:13px;">' + (t.party_name || t.project_name || t.type) + '</div>' +
+      '<div style="font-size:11px; color:var(--text-muted);">' + t.type + ' • #' + t.id + ' • ' + t.date + '</div></div>' +
+      '<div style="font-size:14px; font-weight:900; direction:ltr;">$' + Number(t.amount).toLocaleString() + '</div></div>';
+  });
+  box.innerHTML = html;
+}
+
+// ==================== العمليات السريعة والفواتير ====================
+function openPurchaseModal(preSupplier) {
+  closeModal('modal-quick-action-menu');
+  document.getElementById('purch-supplier-input').value = preSupplier ? preSupplier.name : '';
+  document.getElementById('purch-supplier-id').value = preSupplier ? preSupplier.id : '';
+  document.getElementById('purch-project-input').value = currentViewingProject ? currentViewingProject.name : '';
+  document.getElementById('purch-project-id').value = currentViewingProject ? currentViewingProject.id : '';
+  document.getElementById('purch-material-input').value = '';
+  document.getElementById('purch-material-id').value = '';
+  document.getElementById('purch-unit-price').value = '';
+  document.getElementById('purch-qty').value = '';
+  document.getElementById('purch-conv-factor').value = '1';
+  document.getElementById('purch-total-raw').value = '';
+  document.getElementById('purch-discount').value = '';
+  document.getElementById('purch-net-total').value = '';
+  document.getElementById('purch-paid-now').value = '';
+  document.getElementById('purch-notes').value = '';
+  document.getElementById('purch-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('purch-formula-hint').textContent = '';
+
+  bindSmartCombo('purch-supplier-input', 'purch-supplier-id', 'purch-supplier-drop', 'supplier');
+  bindSmartCombo('purch-project-input', 'purch-project-id', 'purch-project-drop', 'project');
+  bindSmartCombo('purch-material-input', 'purch-material-id', 'purch-material-drop', 'material', function(matId) {
+    var m = gMaterials.find(function(x) { return x.id === matId; });
+    if (m) {
+      document.getElementById('purch-conv-factor').value = m.conversion_rate || 1;
+      if (m.major_price) document.getElementById('purch-unit-price').value = m.major_price;
+      calculatePurchaseTotal();
+    }
+  });
+  openModal('modal-purchase-invoice');
+}
+
+function calculatePurchaseTotal() {
+  var price = parseFloat(document.getElementById('purch-unit-price').value) || 0;
+  var qty = parseFloat(document.getElementById('purch-qty').value) || 0;
+  var conv = parseFloat(document.getElementById('purch-conv-factor').value) || 1;
+  var mode = document.getElementById('purch-unit-mode').value;
+  var hint = document.getElementById('purch-formula-hint');
+
+  var unitCost = mode === 'major' ? price : (price / (conv > 0 ? conv : 1));
+  var total = qty * unitCost;
+  document.getElementById('purch-total-raw').value = total > 0 ? total.toFixed(2) : '';
+  if (price > 0 && conv > 1) {
+    hint.textContent = 'سعر الوحدة الصغرى (التجزئة): $' + (price / conv).toFixed(2) + ' | الإجمالي: $' + total.toFixed(2);
+  } else {
+    hint.textContent = '';
+  }
+  calculatePurchaseNet();
+}
+
+function calculatePurchaseNet() {
+  var raw = parseFloat(document.getElementById('purch-total-raw').value) || 0;
+  var disc = parseFloat(document.getElementById('purch-discount').value) || 0;
+  document.getElementById('purch-net-total').value = Math.max(0, raw - disc).toFixed(2);
+}
+
+function savePurchaseInvoice() {
+  var suppId = parseInt(document.getElementById('purch-supplier-id').value);
+  var projId = parseInt(document.getElementById('purch-project-id').value);
+  var matId = parseInt(document.getElementById('purch-material-id').value);
+  var qty = parseFloat(document.getElementById('purch-qty').value) || 0;
+  var net = parseFloat(document.getElementById('purch-net-total').value) || 0;
+  var paid = parseFloat(document.getElementById('purch-paid-now').value) || 0;
+  var date = document.getElementById('purch-date').value || new Date().toISOString().split('T')[0];
+  var notes = document.getElementById('purch-notes').value.trim();
+
+  if (!suppId || !projId || !matId || net <= 0) {
+    return showToast('يرجى اختيار المورد والورشة والمادة وإدخال السعر والكمية');
+  }
+
+  var supp = gParties.find(function(x) { return x.id === suppId; });
+  var proj = gProjects.find(function(x) { return x.id === projId; });
+  var mat = gMaterials.find(function(x) { return x.id === matId; });
+  var mode = document.getElementById('purch-unit-mode').value;
+  var unitLabel = mat ? (mode === 'major' ? mat.major_unit : mat.minor_unit) : '';
+
+  var tx = {
+    id: Date.now(),
+    date: date,
+    type: 'شراء',
+    party_id: suppId,
+    party_name: supp ? supp.name : '',
+    project_id: projId,
+    project_name: proj ? proj.name : '',
+    material_id: matId,
+    material_name: mat ? mat.name : '',
+    qty: qty,
+    unit: unitLabel,
+    amount: net,
+    paid: paid,
+    remaining: Math.max(0, net - paid),
+    notes: 'شراء ' + qty + ' ' + unitLabel + ' ' + (mat ? mat.name : '') + (notes ? ' - ' + notes : '')
+  };
+
+  gTransactions.push(tx);
+  saveLocalDatabase();
+  closeModal('modal-purchase-invoice');
+  if (currentViewingParty && currentViewingParty.id === suppId) openPartyProfile(suppId);
+  openTxPreviewModal(tx.id);
+  showToast('تم حفظ فاتورة الشراء ✓');
+}
+
+function openSaleModal(preCustomer) {
+  closeModal('modal-quick-action-menu');
+  document.getElementById('sale-customer-input').value = preCustomer ? preCustomer.name : '';
+  document.getElementById('sale-customer-id').value = preCustomer ? preCustomer.id : '';
+  document.getElementById('sale-project-input').value = currentViewingProject ? currentViewingProject.name : '';
+  document.getElementById('sale-project-id').value = currentViewingProject ? currentViewingProject.id : '';
+  document.getElementById('sale-apartment-input').value = '';
+  document.getElementById('sale-apartment-id').value = '';
+  document.getElementById('sale-area-sqm').value = '';
+  document.getElementById('sale-price-per-m').value = '';
+  document.getElementById('sale-calc-total').value = '';
+  document.getElementById('sale-discount').value = '';
+  document.getElementById('sale-net-total').value = '';
+  document.getElementById('sale-down-payment').value = '';
+  document.getElementById('sale-notes').value = '';
+  document.getElementById('sale-date').value = new Date().toISOString().split('T')[0];
+
+  bindSmartCombo('sale-customer-input', 'sale-customer-id', 'sale-customer-drop', 'customer');
+  bindSmartCombo('sale-project-input', 'sale-project-id', 'sale-project-drop', 'project', function() {
+    document.getElementById('sale-apartment-input').value = '';
+    document.getElementById('sale-apartment-id').value = '';
+  });
+  bindSmartCombo('sale-apartment-input', 'sale-apartment-id', 'sale-apartment-drop', 'apartment', function(aptId) {
+    var apt = gApartments.find(function(a) { return a.id === aptId; });
+    if (apt && apt.project_id) {
+      var pr = gProjects.find(function(p) { return p.id === apt.project_id; });
+      if (pr) {
+        document.getElementById('sale-project-input').value = pr.name;
+        document.getElementById('sale-project-id').value = pr.id;
+      }
+    }
+  });
+  openModal('modal-sale-invoice');
+}
+
+function calculateSaleTotal() {
+  var area = parseFloat(document.getElementById('sale-area-sqm').value) || 0;
+  var price = parseFloat(document.getElementById('sale-price-per-m').value) || 0;
+  var tot = area * price;
+  document.getElementById('sale-calc-total').value = tot > 0 ? tot.toFixed(2) : '';
+  calculateSaleNet();
+}
+
+function calculateSaleNet() {
+  var raw = parseFloat(document.getElementById('sale-calc-total').value) || 0;
+  var disc = parseFloat(document.getElementById('sale-discount').value) || 0;
+  document.getElementById('sale-net-total').value = Math.max(0, raw - disc).toFixed(2);
+}
+
+function saveSaleInvoice() {
+  var custId = parseInt(document.getElementById('sale-customer-id').value);
+  var projId = parseInt(document.getElementById('sale-project-id').value);
+  var aptId = parseInt(document.getElementById('sale-apartment-id').value);
+  var area = parseFloat(document.getElementById('sale-area-sqm').value) || 0;
+  var priceM = parseFloat(document.getElementById('sale-price-per-m').value) || 0;
+  var net = parseFloat(document.getElementById('sale-net-total').value) || 0;
+  var down = parseFloat(document.getElementById('sale-down-payment').value) || 0;
+  var date = document.getElementById('sale-date').value || new Date().toISOString().split('T')[0];
+  var notes = document.getElementById('sale-notes').value.trim();
+
+  if (!custId || !projId || !aptId || net <= 0) {
+    return showToast('يرجى اختيار العميل والورشة والشقة وتحديد السعر');
+  }
+
+  var cust = gParties.find(function(x) { return x.id === custId; });
+  var proj = gProjects.find(function(x) { return x.id === projId; });
+  var apt = gApartments.find(function(x) { return x.id === aptId; });
+
+  apt.status = 'مباعة';
+  apt.buyer_id = custId;
+  apt.buyer_name = cust ? cust.name : '';
+  apt.sale_price = net;
+  apt.sale_date = date;
+  apt.area = area;
+
+  var tx = {
+    id: Date.now(),
+    date: date,
+    type: 'بيع',
+    party_id: custId,
+    party_name: cust ? cust.name : '',
+    project_id: projId,
+    project_name: proj ? proj.name : '',
+    apartment_id: aptId,
+    apartment_name: apt.name,
+    amount: net,
+    paid: down,
+    remaining: Math.max(0, net - down),
+    notes: 'عقد بيع ' + apt.name + (area ? ' مساحة ' + area + 'م²' : '') + (priceM ? ' بسعر متر $' + priceM : '') + (notes ? ' - ' + notes : '')
+  };
+
+  gTransactions.push(tx);
+  saveLocalDatabase();
+  closeModal('modal-sale-invoice');
+  if (currentViewingParty && currentViewingParty.id === custId) openPartyProfile(custId);
+  openTxPreviewModal(tx.id);
+  showToast('تم حفظ عقد البيع بنجاح ✓');
+}
+
+function openQuickExpenseModal() {
+  closeModal('modal-quick-action-menu');
+  document.getElementById('exp-project-input').value = currentViewingProject ? currentViewingProject.name : '';
+  document.getElementById('exp-project-id').value = currentViewingProject ? currentViewingProject.id : '';
+  document.getElementById('exp-amount').value = '';
+  document.getElementById('exp-notes').value = '';
+  document.getElementById('exp-date').value = new Date().toISOString().split('T')[0];
+  bindSmartCombo('exp-project-input', 'exp-project-id', 'exp-project-drop', 'project');
+  openModal('modal-expense');
+}
+
+function saveExpense() {
+  var projId = parseInt(document.getElementById('exp-project-id').value);
+  var amt = parseFloat(document.getElementById('exp-amount').value) || 0;
+  var date = document.getElementById('exp-date').value || new Date().toISOString().split('T')[0];
+  var notes = document.getElementById('exp-notes').value.trim();
+
+  if (!projId || amt <= 0 || !notes) return showToast('يرجى اختيار الورشة وإدخال المبلغ والبيان');
+  var proj = gProjects.find(function(x) { return x.id === projId; });
+
+  var tx = {
+    id: Date.now(),
+    date: date,
+    type: 'مصروف',
+    project_id: projId,
+    project_name: proj ? proj.name : '',
+    amount: amt,
+    paid: amt,
+    notes: notes
+  };
+
+  gTransactions.push(tx);
+  saveLocalDatabase();
+  closeModal('modal-expense');
+  if (document.getElementById('screen-general-expenses').classList.contains('active')) renderGeneralExpensesTable();
+  openTxPreviewModal(tx.id);
+  showToast('تم تسجيل المصروف بنجاح ✓');
+}
+
+function openDirectPaymentModal(mode, preParty) {
+  closeModal('modal-quick-action-menu');
+  setPaymentMode(mode || 'دفعة_عميل', preParty);
+  document.getElementById('pay-amount').value = '';
+  document.getElementById('pay-notes').value = '';
+  document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
+  openModal('modal-direct-payment');
+}
+
+function setPaymentMode(mode, preParty) {
+  currentPaymentMode = mode;
+  document.getElementById('pay-btn-cust').classList.toggle('active', mode === 'دفعة_عميل');
+  document.getElementById('pay-btn-supp-pay').classList.toggle('active', mode === 'دفعة_مورد');
+  document.getElementById('pay-btn-supp-rec').classList.toggle('active', mode === 'مرتجع_مورد');
+
+  var pInput = document.getElementById('pay-party-input');
+  var pId = document.getElementById('pay-party-id');
+  pInput.value = preParty ? preParty.name : '';
+  pId.value = preParty ? preParty.id : '';
+
+  var isCust = (mode === 'دفعة_عميل');
+  document.getElementById('pay-party-label').textContent = isCust ? 'اسم العميل * (اكتب للتصفية)' : 'اسم المورد * (اكتب للتصفية)';
+  document.getElementById('pay-customer-apt-grp').style.display = isCust ? 'block' : 'none';
+
+  bindSmartCombo('pay-party-input', 'pay-party-id', 'pay-party-drop', isCust ? 'customer' : 'supplier', function(selectedId) {
+    if (isCust) populateCustomerSoldApartments(selectedId);
+  });
+
+  if (isCust && preParty) populateCustomerSoldApartments(preParty.id);
+}
+
+function populateCustomerSoldApartments(cId) {
+  var sel = document.getElementById('pay-customer-apt-select');
+  sel.innerHTML = '<option value="">دفعة عامة على حساب العميل</option>';
+  if (!cId) return;
+  var apts = gApartments.filter(function(a) { return a.buyer_id === cId; });
+  apts.forEach(function(a) {
+    var pr = gProjects.find(function(p) { return p.id === a.project_id; });
+    sel.innerHTML += '<option value="' + a.id + '">' + (pr ? pr.name + ' - ' : '') + a.name + '</option>';
+  });
+}
+
+function saveDirectPayment() {
+  var pId = parseInt(document.getElementById('pay-party-id').value);
+  var amt = parseFloat(document.getElementById('pay-amount').value) || 0;
+  var date = document.getElementById('pay-date').value || new Date().toISOString().split('T')[0];
+  var notes = document.getElementById('pay-notes').value.trim();
+  var aptId = currentPaymentMode === 'دفعة_عميل' ? parseInt(document.getElementById('pay-customer-apt-select').value) : null;
+
+  if (!pId || amt <= 0) return showToast('يرجى اختيار الاسم وإدخال المبلغ');
+  var party = gParties.find(function(x) { return x.id === pId; });
+  var apt = aptId ? gApartments.find(function(a) { return a.id === aptId; }) : null;
+  var proj = apt ? gProjects.find(function(p) { return p.id === apt.project_id; }) : null;
+
+  var defaultNote = currentPaymentMode === 'دفعة_عميل' ? 'سند قبض دفعة من عميل' : (currentPaymentMode === 'دفعة_مورد' ? 'سند صرف دفعة لمورد' : 'سند قبض مرتجع من مورد');
+
+  var tx = {
+    id: Date.now(),
+    date: date,
+    type: currentPaymentMode,
+    party_id: pId,
+    party_name: party ? party.name : '',
+    project_id: proj ? proj.id : null,
+    project_name: proj ? proj.name : '',
+    apartment_id: apt ? apt.id : null,
+    apartment_name: apt ? apt.name : '',
+    amount: amt,
+    paid: amt,
+    notes: defaultNote + (apt ? ' (' + apt.name + ')' : '') + (notes ? ' - ' + notes : '')
+  };
+
+  gTransactions.push(tx);
+  saveLocalDatabase();
+  closeModal('modal-direct-payment');
+  if (currentViewingParty && currentViewingParty.id === pId) openPartyProfile(pId);
+  openTxPreviewModal(tx.id);
+  showToast('تم حفظ السند بنجاح ✓');
+}
+
+function openSalaryModal(mode, preEmp) {
+  closeModal('modal-quick-action-menu');
+  document.getElementById('sal-employee-input').value = preEmp ? preEmp.name : '';
+  document.getElementById('sal-employee-id').value = preEmp ? preEmp.id : '';
+  setSalaryType(mode || 'استحقاق_راتب');
+  document.getElementById('sal-amount').value = '';
+  document.getElementById('sal-notes').value = '';
+  document.getElementById('sal-date').value = new Date().toISOString().split('T')[0];
+  bindSmartCombo('sal-employee-input', 'sal-employee-id', 'sal-employee-drop', 'employee');
+  openModal('modal-salary');
+}
+
+function setSalaryType(type) {
+  currentSalaryType = type;
+  document.getElementById('sal-btn-accrue').classList.toggle('active', type === 'استحقاق_راتب');
+  document.getElementById('sal-btn-pay').classList.toggle('active', type === 'صرف_راتب');
+  document.getElementById('sal-btn-deduct').classList.toggle('active', type === 'خصم_موظف');
+}
+
+function saveSalary() {
+  var empId = parseInt(document.getElementById('sal-employee-id').value);
+  var amt = parseFloat(document.getElementById('sal-amount').value) || 0;
+  var date = document.getElementById('sal-date').value || new Date().toISOString().split('T')[0];
+  var notes = document.getElementById('sal-notes').value.trim();
+
+  if (!empId || amt <= 0) return showToast('يرجى اختيار الموظف وإدخال المبلغ');
+  var emp = gParties.find(function(x) { return x.id === empId; });
+
+  var tx = {
+    id: Date.now(),
+    date: date,
+    type: currentSalaryType,
+    party_id: empId,
+    party_name: emp ? emp.name : '',
+    amount: amt,
+    paid: currentSalaryType === 'صرف_راتب' ? amt : 0,
+    notes: currentSalaryType.replace('_', ' ') + (notes ? ' - ' + notes : '')
+  };
+
+  gTransactions.push(tx);
+  saveLocalDatabase();
+  closeModal('modal-salary');
+  if (currentViewingParty && currentViewingParty.id === empId) openPartyProfile(empId);
+  openTxPreviewModal(tx.id);
+  showToast('تم حفظ عملية الموظف ✓');
+}
+
+function openContractorModal(mode, preCont) {
+  closeModal('modal-quick-action-menu');
+  document.getElementById('cont-party-input').value = preCont ? preCont.name : '';
+  document.getElementById('cont-party-id').value = preCont ? preCont.id : '';
+  document.getElementById('cont-project-input').value = currentViewingProject ? currentViewingProject.name : '';
+  document.getElementById('cont-project-id').value = currentViewingProject ? currentViewingProject.id : '';
+  setContractorTxType(mode || 'استحقاق_مقاول');
+  document.getElementById('cont-amount').value = '';
+  document.getElementById('cont-notes').value = '';
+  document.getElementById('cont-date').value = new Date().toISOString().split('T')[0];
+  bindSmartCombo('cont-party-input', 'cont-party-id', 'cont-party-drop', 'contractor');
+  bindSmartCombo('cont-project-input', 'cont-project-id', 'cont-project-drop', 'project');
+  openModal('modal-contractor-account');
+}
+
+function setContractorTxType(type) {
+  currentContractorTxType = type;
+  document.getElementById('cont-btn-accrue').classList.toggle('active', type === 'استحقاق_مقاول');
+  document.getElementById('cont-btn-pay').classList.toggle('active', type === 'سداد_مقاول');
+}
+
+function saveContractorTx() {
+  var cId = parseInt(document.getElementById('cont-party-id').value);
+  var projId = parseInt(document.getElementById('cont-project-id').value);
+  var amt = parseFloat(document.getElementById('cont-amount').value) || 0;
+  var date = document.getElementById('cont-date').value || new Date().toISOString().split('T')[0];
+  var notes = document.getElementById('cont-notes').value.trim();
+
+  if (!cId || !projId || amt <= 0) return showToast('يرجى اختيار المقاول والورشة وإدخال المبلغ');
+  var cont = gParties.find(function(x) { return x.id === cId; });
+  var proj = gProjects.find(function(x) { return x.id === projId; });
+
+  var tx = {
+    id: Date.now(),
+    date: date,
+    type: currentContractorTxType,
+    party_id: cId,
+    party_name: cont ? cont.name : '',
+    project_id: projId,
+    project_name: proj ? proj.name : '',
+    amount: amt,
+    paid: currentContractorTxType === 'سداد_مقاول' ? amt : 0,
+    notes: (currentContractorTxType === 'استحقاق_مقاول' ? 'استحقاق أعمال للمقاول' : 'دفعة مسددة للمقاول') + (notes ? ' - ' + notes : '')
+  };
+
+  gTransactions.push(tx);
+  saveLocalDatabase();
+  closeModal('modal-contractor-account');
+  if (currentViewingParty && currentViewingParty.id === cId) openPartyProfile(cId);
+  openTxPreviewModal(tx.id);
+  showToast('تم حفظ عملية المقاول ✓');
+}
+
+// ==================== إدارة الورشات والشقق وبطاقة الشقة ====================
+function openAddProjectModal() {
+  document.getElementById('new-proj-name').value = '';
+  document.getElementById('new-proj-location').value = '';
+  document.getElementById('new-proj-floors').value = '4';
+  document.getElementById('new-proj-total-apts').value = '8';
+  generateApartmentNamesPreview();
+  openModal('modal-add-project');
+}
+
+function generateApartmentNamesPreview() {
+  var floors = parseInt(document.getElementById('new-proj-floors').value) || 1;
+  var totalApts = parseInt(document.getElementById('new-proj-total-apts').value) || 1;
+  var perFloor = Math.ceil(totalApts / floors);
+  var lines = [];
+  var count = 0;
+  for (var f = 1; f <= floors; f++) {
+    for (var a = 1; a <= perFloor; a++) {
+      if (count < totalApts) {
+        lines.push('طابق ' + f + ' - شقة ' + a);
+        count++;
+      }
+    }
+  }
+  document.getElementById('new-proj-apts-names').value = lines.join('\n');
+}
+
+function saveNewProject() {
+  var name = document.getElementById('new-proj-name').value.trim();
+  var loc = document.getElementById('new-proj-location').value.trim();
+  var rawNames = document.getElementById('new-proj-apts-names').value.trim();
+
+  if (!name) return showToast('يرجى إدخال اسم الورشة');
+  var pId = Date.now();
+  gProjects.push({ id: pId, name: name, location: loc, created_at: new Date().toISOString().split('T')[0] });
+
+  var lines = rawNames.split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
+  for (var i = 0; i < lines.length; i++) {
+    gApartments.push({
+      id: pId + i + 1,
+      project_id: pId,
+      name: lines[i],
+      status: 'متاحة',
+      buyer_id: null,
+      buyer_name: null,
+      sale_price: 0,
+      area: 0
+    });
+  }
+
+  saveLocalDatabase();
+  closeModal('modal-add-project');
+  if (document.getElementById('screen-projects').classList.contains('active')) renderProjectsList();
+  showToast('تم إنشاء الورشة وتوليد الشقق بنجاح ✓');
+}
+
+function renderProjectsList() {
+  var box = document.getElementById('projects-list-container');
+  var q = (document.getElementById('proj-list-search').value || '').trim().toLowerCase();
+  var list = gProjects.filter(function(p) {
+    return !q || p.name.toLowerCase().indexOf(q) !== -1 || (p.location && p.location.toLowerCase().indexOf(q) !== -1);
+  });
+
+  if (!list.length) {
+    box.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px;">لا توجد ورشات مسجلة</div>';
+    return;
+  }
+
+  var html = '';
+  list.forEach(function(p) {
+    var apts = gApartments.filter(function(a) { return a.project_id === p.id; });
+    var sold = apts.filter(function(a) { return a.status === 'مباعة'; }).length;
+    html += '<div class="card-row-item" onclick="openProjectDetail(' + p.id + ')">' +
+      '<div><div style="font-weight:900; font-size:15px;">' + p.name + '</div>' +
+      '<div style="font-size:11px; color:var(--text-muted);">' + (p.location || 'بدون عنوان') + '</div></div>' +
+      '<div style="text-align:left;"><div style="font-size:13px; font-weight:800; color:var(--info);">' + apts.length + ' شقة</div>' +
+      '<div style="font-size:10px; color:var(--text-muted);">مباعة: ' + sold + ' | متاحة: ' + (apts.length - sold) + '</div></div></div>';
+  });
+  box.innerHTML = html;
+}
+
+function openProjectDetail(pId) {
+  var p = gProjects.find(function(x) { return x.id === pId; });
+  if (!p) return;
+  currentViewingProject = p;
+
+  document.getElementById('proj-detail-name').textContent = p.name;
+  document.getElementById('proj-detail-location').textContent = p.location || 'بدون عنوان';
+
+  var apts = gApartments.filter(function(a) { return a.project_id === p.id; });
+  var soldApts = apts.filter(function(a) { return a.status === 'مباعة'; });
+  document.getElementById('proj-detail-total-apts').textContent = apts.length;
+  document.getElementById('proj-detail-sold-apts').textContent = soldApts.length;
+  document.getElementById('proj-detail-avail-apts').textContent = apts.length - soldApts.length;
+
+  var projTxs = gTransactions.filter(function(t) { return t.project_id === p.id; });
+
+  // حساب مصاريف الورشة والأرباح الفعلية والمتوقعة
+  var totalCosts = 0;
+  var actualCashCollected = 0;
+  var expectedTotalSales = 0;
+
+  soldApts.forEach(function(a) { expectedTotalSales += (parseFloat(a.sale_price) || 0); });
+
+  projTxs.forEach(function(t) {
+    if (t.type === 'شراء' || t.type === 'مصروف' || t.type === 'استحقاق_مقاول') {
+      totalCosts += (parseFloat(t.amount) || 0);
+    }
+    if (t.type === 'بيع') actualCashCollected += (parseFloat(t.paid) || 0);
+    if (t.type === 'دفعة_عميل') actualCashCollected += (parseFloat(t.amount) || 0);
+  });
+
+  // أيضاً جمع دفعات العملاء المرتبطة بشقق هذه الورشة حتى لو لم يُسجل project_id مباشرة
+  var aptIds = apts.map(function(a) { return a.id; });
+  gTransactions.forEach(function(t) {
+    if (t.type === 'دفعة_عميل' && t.project_id !== p.id && aptIds.indexOf(t.apartment_id) !== -1) {
+      actualCashCollected += (parseFloat(t.amount) || 0);
+    }
+  });
+
+  var actualProfit = actualCashCollected - totalCosts;
+  var expectedProfit = expectedTotalSales - totalCosts;
+
+  document.getElementById('proj-box-expenses').textContent = '-$' + totalCosts.toLocaleString(undefined, {minimumFractionDigits:2});
+  var actEl = document.getElementById('proj-box-actual-profit');
+  actEl.textContent = (actualProfit >= 0 ? '$' : '-$') + Math.abs(actualProfit).toLocaleString(undefined, {minimumFractionDigits:2});
+  actEl.style.color = actualProfit >= 0 ? 'var(--success)' : 'var(--danger)';
+
+  var expEl = document.getElementById('proj-box-expected-profit');
+  expEl.textContent = (expectedProfit >= 0 ? '$' : '-$') + Math.abs(expectedProfit).toLocaleString(undefined, {minimumFractionDigits:2});
+  expEl.style.color = expectedProfit >= 0 ? 'var(--info)' : 'var(--danger)';
+
+  renderProjectApartmentsTable(apts);
+  filterCurrentProjectTxs();
+  goTo('screen-project-detail');
+}
+
+function switchProjTab(tab) {
+  document.getElementById('tab-btn-proj-apts').classList.toggle('active', tab === 'apts');
+  document.getElementById('tab-btn-proj-tx').classList.toggle('active', tab === 'tx');
+  document.getElementById('proj-tab-apts-view').style.display = tab === 'apts' ? 'block' : 'none';
+  document.getElementById('proj-tab-tx-view').style.display = tab === 'tx' ? 'block' : 'none';
+}
+
+function getApartmentPaymentStats(aptId) {
+  var aptTxs = gTransactions.filter(function(t) { return t.apartment_id === aptId; });
+  var paid = 0;
+  var count = 0;
+  var paymentsList = [];
+  aptTxs.forEach(function(t) {
+    if (t.type === 'بيع' && parseFloat(t.paid) > 0) {
+      paid += parseFloat(t.paid);
+      count++;
+      paymentsList.push({ id: t.id, date: t.date, amount: parseFloat(t.paid), notes: 'دفعة أولى عند العقد' });
+    } else if (t.type === 'دفعة_عميل') {
+      paid += parseFloat(t.amount) || 0;
+      count++;
+      paymentsList.push({ id: t.id, date: t.date, amount: parseFloat(t.amount) || 0, notes: t.notes || 'دفعة قسط' });
+    }
+  });
+  return { paid: paid, count: count, list: paymentsList };
+}
+
+function renderProjectApartmentsTable(apts) {
+  var tbody = document.getElementById('proj-apts-table-body');
+  if (!apts.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:15px;">لا توجد شقق</td></tr>';
+    return;
+  }
+  var html = '';
+  apts.forEach(function(a) {
+    var isSold = (a.status === 'مباعة');
+    var st = getApartmentPaymentStats(a.id);
+    var price = parseFloat(a.sale_price) || 0;
+    var rem = Math.max(0, price - st.paid);
+
+    html += '<tr onclick="openApartmentDetailModal(' + a.id + ')" style="cursor:pointer;">' +
+      '<td><strong>' + a.name + '</strong></td>' +
+      '<td><span style="color:' + (isSold ? 'var(--danger)' : 'var(--success)') + '; font-weight:800;">' + a.status + '</span></td>' +
+      '<td>' + (a.buyer_name || '---') + '</td>' +
+      '<td>' + (isSold ? '$' + price.toLocaleString() : '---') + '</td>' +
+      '<td>' + (isSold ? '$' + st.paid.toLocaleString() : '---') + '</td>' +
+      '<td>' + (isSold ? '$' + rem.toLocaleString() : '---') + '</td>' +
+      '<td>' + (isSold ? st.count + ' دفعات' : '---') + '</td>' +
+      '<td onclick="event.stopPropagation();">' +
+        '<button type="button" class="btn-action-pill" onclick="openApartmentDetailModal(' + a.id + ')">بطاقة الشقة</button> ' +
+        (isSold ? '<button type="button" class="btn-action-pill" style="color:var(--danger);" onclick="cancelApartmentSaleContract(' + a.id + ')">فسخ العقد</button>' : '') +
+      '</td></tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function openApartmentDetailModal(aptId) {
+  var a = gApartments.find(function(x) { return x.id === aptId; });
+  if (!a) return;
+  currentViewingAptId = aptId;
+  var proj = gProjects.find(function(p) { return p.id === a.project_id; });
+  var isSold = (a.status === 'مباعة');
+  var st = getApartmentPaymentStats(a.id);
+  var price = parseFloat(a.sale_price) || 0;
+  var rem = Math.max(0, price - st.paid);
+
+  document.getElementById('apt-card-name').textContent = a.name;
+  document.getElementById('apt-card-project').textContent = proj ? proj.name : '';
+  document.getElementById('apt-card-status-badge').innerHTML = '<span class="btn-action-pill" style="color:' + (isSold ? 'var(--danger)' : 'var(--success)') + ';">' + a.status + '</span>';
+  document.getElementById('apt-card-buyer').textContent = isSold ? (a.buyer_name || 'مباعة') : 'غير مباعة (متاحة)';
+  document.getElementById('apt-card-area').textContent = a.area ? a.area + ' م²' : '---';
+  document.getElementById('apt-card-price').textContent = '$' + price.toLocaleString();
+  document.getElementById('apt-card-paid').textContent = '$' + st.paid.toLocaleString();
+  document.getElementById('apt-card-remaining').textContent = '$' + rem.toLocaleString();
+  document.getElementById('btn-apt-cancel-contract').style.display = isSold ? 'inline-flex' : 'none';
+
+  var tbody = document.getElementById('apt-card-payments-table-body');
+  if (!st.list.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:12px; color:var(--text-muted);">لا توجد دفعات مسجلة لهذه الشقة</td></tr>';
+  } else {
+    var html = '';
+    st.list.forEach(function(pm) {
+      html += '<tr><td>#' + pm.id + '</td><td>' + pm.date + '</td><td>' + pm.notes + '</td><td style="font-weight:900; color:var(--success);">$' + pm.amount.toLocaleString() + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  }
+  openModal('modal-apartment-detail-card');
+}
+
+function cancelApartmentSaleContract(aptId) {
+  var apt = gApartments.find(function(a) { return a.id === aptId; });
+  if (!apt || apt.status !== 'مباعة') return;
+  if (confirm('تأكيد فسخ عقد البيع للشقة (' + apt.name + ')؟\nسيتم حذف كافة العمليات والدفعات المرتبطة بهذه الشقة تلقائياً وإعادتها لحالة متاحة.')) {
+    gTransactions = gTransactions.filter(function(t) { return t.apartment_id !== aptId; });
+    apt.status = 'متاحة';
+    apt.buyer_id = null;
+    apt.buyer_name = null;
+    apt.sale_price = 0;
+    apt.area = 0;
+    saveLocalDatabase();
+    closeModal('modal-apartment-detail-card');
+    if (currentViewingProject) openProjectDetail(currentViewingProject.id);
+    if (currentViewingParty) openPartyProfile(currentViewingParty.id);
+    showToast('تم فسخ العقد وحذف العمليات المرتبطة بالشقة ✓');
+  }
+}
+
+function filterCurrentProjectTxs() {
+  if (!currentViewingProject) return;
+  var q = (document.getElementById('proj-tx-search').value || '').trim().toLowerCase();
+  var dFrom = document.getElementById('proj-tx-from').value;
+  var dTo = document.getElementById('proj-tx-to').value;
+
+  var list = gTransactions.filter(function(t) {
+    if (t.project_id !== currentViewingProject.id) return false;
+    var mq = !q || String(t.id).indexOf(q) !== -1 || (t.party_name && t.party_name.toLowerCase().indexOf(q) !== -1) || (t.notes && t.notes.toLowerCase().indexOf(q) !== -1);
+    if (dFrom && t.date < dFrom) return false;
+    if (dTo && t.date > dTo) return false;
+    return mq;
+  });
+
+  var tbody = document.getElementById('proj-tx-table-body');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px;">لا توجد عمليات مطابقة</td></tr>';
+    return;
+  }
+  var html = '';
+  list.slice().reverse().forEach(function(t) {
+    html += '<tr><td>#' + t.id + '</td><td>' + t.date + '</td><td>' + t.type + '</td><td>' + (t.party_name || '---') + '</td>' +
+      '<td style="font-weight:900;">$' + Number(t.amount).toLocaleString() + '</td><td>' + (t.notes || '') + '</td>' +
+      '<td>' + buildTxRowActionsHTML(t.id) + '</td></tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function deleteCurrentProjectConfirm() {
+  if (!currentViewingProject) return;
+  if (confirm('هل أنت متأكد من حذف الورشة (' + currentViewingProject.name + ') مع جميع شققها وعملياتها؟')) {
+    var pid = currentViewingProject.id;
+    gTransactions = gTransactions.filter(function(t) { return t.project_id !== pid; });
+    gApartments = gApartments.filter(function(a) { return a.project_id !== pid; });
+    gProjects = gProjects.filter(function(p) { return p.id !== pid; });
+    saveLocalDatabase();
+    goTo('screen-projects');
+    showToast('تم حذف الورشة بنجاح ✓');
+  }
+}
+
+// ==================== إجراءات الجداول الموحدة (حذف، تعديل، واتساب، PDF) ====================
+function buildTxRowActionsHTML(txId) {
+  return '<div style="display:inline-flex; gap:4px;">' +
+    '<button type="button" class="btn-action-pill" onclick="openTxPreviewModal(' + txId + ')">PDF/معاينة</button>' +
+    '<button type="button" class="btn-action-pill" onclick="openEditTxModal(' + txId + ')">تعديل</button>' +
+    '<button type="button" class="btn-action-pill" style="color:#25d366;" onclick="quickWhatsAppTx(' + txId + ')">واتساب</button>' +
+    '<button type="button" class="btn-action-pill" style="color:var(--danger);" onclick="deleteSingleTxConfirm(' + txId + ')">حذف</button>' +
+  '</div>';
+}
+
+function openEditTxModal(txId) {
+  var t = gTransactions.find(function(x) { return x.id === txId; });
+  if (!t) return;
+  document.getElementById('edit-tx-id').value = t.id;
+  document.getElementById('edit-tx-date').value = t.date;
+  document.getElementById('edit-tx-amount').value = t.amount;
+  document.getElementById('edit-tx-paid').value = t.paid || 0;
+  document.getElementById('edit-tx-notes').value = t.notes || '';
+  openModal('modal-edit-tx');
+}
+
+function saveEditedTransaction() {
+  var id = parseInt(document.getElementById('edit-tx-id').value);
+  var t = gTransactions.find(function(x) { return x.id === id; });
+  if (!t) return;
+  t.date = document.getElementById('edit-tx-date').value || t.date;
+  t.amount = parseFloat(document.getElementById('edit-tx-amount').value) || 0;
+  t.paid = parseFloat(document.getElementById('edit-tx-paid').value) || 0;
+  t.remaining = Math.max(0, t.amount - t.paid);
+  t.notes = document.getElementById('edit-tx-notes').value.trim();
+
+  if (t.type === 'بيع' && t.apartment_id) {
+    var apt = gApartments.find(function(a) { return a.id === t.apartment_id; });
+    if (apt) apt.sale_price = t.amount;
+  }
+
+  saveLocalDatabase();
+  closeModal('modal-edit-tx');
+  refreshCurrentActiveScreen();
+  showToast('تم تعديل العملية والتاريخ بنجاح ✓');
+}
+
+function deleteSingleTxConfirm(txId) {
+  if (confirm('هل أنت متأكد من حذف هذه العملية نهائياً؟')) {
+    gTransactions = gTransactions.filter(function(t) { return t.id !== txId; });
+    saveLocalDatabase();
+    refreshCurrentActiveScreen();
+    showToast('تم حذف العملية وتحديث الأرصدة ✓');
+  }
+}
+
+function quickWhatsAppTx(txId) {
+  var t = gTransactions.find(function(x) { return x.id === txId; });
+  if (!t) return;
+  activePreviewTx = t;
+  shareTxWhatsApp();
+}
+
+function refreshCurrentActiveScreen() {
+  var act = document.querySelector('.screen.active');
+  if (!act) return;
+  if (act.id === 'screen-party-profile' && currentViewingParty) openPartyProfile(currentViewingParty.id);
+  else if (act.id === 'screen-project-detail' && currentViewingProject) openProjectDetail(currentViewingProject.id);
+  else if (act.id === 'screen-material-detail' && currentViewingMaterial) openMaterialDetail(currentViewingMaterial.id);
+  else goTo(act.id);
+}
+
+// ==================== إدارة الحسابات (الموردين، العملاء، المقاولين، الموظفين) ====================
+function openAddPartyModal(type) {
+  document.getElementById('add-party-type').value = type;
+  var titles = { supplier: 'إضافة مورد جديد', customer: 'إضافة عميل جديد', contractor: 'إضافة مقاول جديد', employee: 'إضافة موظف جديد' };
+  document.getElementById('add-party-title').textContent = titles[type] || 'إضافة حساب';
+  document.getElementById('add-party-name').value = '';
+  document.getElementById('add-party-phone').value = '';
+  document.getElementById('add-party-address').value = '';
+  document.getElementById('add-party-open-balance').value = '';
+  openModal('modal-add-party');
+}
+
+function saveNewParty() {
+  var type = document.getElementById('add-party-type').value;
+  var name = document.getElementById('add-party-name').value.trim();
+  var phone = document.getElementById('add-party-phone').value.trim();
+  var addr = document.getElementById('add-party-address').value.trim();
+  var openBal = parseFloat(document.getElementById('add-party-open-balance').value) || 0;
+
+  if (!name) return showToast('يرجى إدخال الاسم');
+  var pId = Date.now();
+  gParties.push({ id: pId, type: type, name: name, phone: phone, address: addr });
+
+  if (openBal > 0) {
+    gTransactions.push({
+      id: pId + 1,
+      date: new Date().toISOString().split('T')[0],
+      type: type === 'customer' ? 'دين_افتتاحي' : 'مستحق_افتتاحي',
+      party_id: pId,
+      party_name: name,
+      amount: openBal,
+      paid: 0,
+      notes: 'رصيد افتتاحي مسجل'
+    });
+  }
+
+  saveLocalDatabase();
+  closeModal('modal-add-party');
+  refreshCurrentActiveScreen();
+  showToast('تم حفظ الحساب بنجاح ✓');
+}
+
+function renderPartiesList(type, containerId, searchVal) {
+  var box = document.getElementById(containerId);
+  if (!box) return;
+  var q = (searchVal || '').trim().toLowerCase();
+  var list = gParties.filter(function(p) {
+    if (p.type !== type) return false;
+    return !q || p.name.toLowerCase().indexOf(q) !== -1 || (p.phone && p.phone.indexOf(q) !== -1);
+  });
+
+  if (!list.length) {
+    box.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px;">لا توجد أسماء مسجلة في هذا القسم</div>';
+    return;
+  }
+
+  var html = '';
+  list.forEach(function(p) {
+    var sum = getPartySummary(p.id);
+    var col = sum.balance > 0 ? (type === 'customer' ? 'var(--success)' : 'var(--danger)') : 'var(--text-muted)';
+    html += '<div class="card-row-item" onclick="openPartyProfile(' + p.id + ')">' +
+      '<div><div style="font-weight:900; font-size:14px;">' + p.name + '</div>' +
+      '<div style="font-size:11px; color:var(--text-muted);">' + (p.phone || 'بدون رقم') + (p.address ? ' • ' + p.address : '') + '</div></div>' +
+      '<div style="text-align:left;"><div style="font-size:14px; font-weight:900; color:' + col + '; direction:ltr;">$' + sum.balance.toLocaleString(undefined, {minimumFractionDigits:2}) + '</div>' +
+      '<div style="font-size:10px; color:var(--text-muted);">' + (type === 'customer' ? 'الباقي عليه' : 'الباقي له') + '</div></div></div>';
+  });
+  box.innerHTML = html;
+}
+
+function openPartyProfile(pId) {
+  var p = gParties.find(function(x) { return x.id === pId; });
+  if (!p) return;
+  currentViewingParty = p;
+  var mapScr = { supplier: 'screen-suppliers', customer: 'screen-customers', contractor: 'screen-contractors', employee: 'screen-employees' };
+  currentPartyReturnScreen = mapScr[p.type] || 'screen-home';
+
+  document.getElementById('prof-party-name').textContent = p.name;
+  document.getElementById('prof-party-meta').textContent = (p.phone ? 'الهاتف: ' + p.phone : 'بدون هاتف') + (p.address ? ' | العنوان: ' + p.address : '');
+
+  var sum = getPartySummary(p.id);
+  document.getElementById('prof-lbl-total').textContent = p.type === 'customer' ? 'إجمالي المطلوب' : 'إجمالي المستحق له';
+  document.getElementById('prof-val-total').textContent = '$' + sum.totalRequired.toLocaleString(undefined, {minimumFractionDigits:2});
+  document.getElementById('prof-val-paid').textContent = '$' + sum.totalPaid.toLocaleString(undefined, {minimumFractionDigits:2});
+  document.getElementById('prof-party-balance').textContent = '$' + sum.balance.toLocaleString(undefined, {minimumFractionDigits:2});
+
+  // أزرار العمليات المباشرة داخل صفحة الطرف
+  var toolbar = document.getElementById('party-direct-actions-toolbar');
+  if (p.type === 'supplier') {
+    toolbar.innerHTML = '<button type="button" class="btn-action-pill active" onclick="openPurchaseModal(currentViewingParty)">+ فاتورة شراء</button>' +
+      '<button type="button" class="btn-action-pill" onclick="openDirectPaymentModal(\'دفعة_مورد\', currentViewingParty)">+ سند صرف (دفعة لمورد)</button>' +
+      '<button type="button" class="btn-action-pill" onclick="openDirectPaymentModal(\'مرتجع_مورد\', currentViewingParty)">+ سند قبض (مرتجع)</button>';
+  } else if (p.type === 'customer') {
+    toolbar.innerHTML = '<button type="button" class="btn-action-pill active" onclick="openSaleModal(currentViewingParty)">+ فاتورة بيع شقة</button>' +
+      '<button type="button" class="btn-action-pill" onclick="openDirectPaymentModal(\'دفعة_عميل\', currentViewingParty)">+ سند قبض (تسجيل دفعة)</button>';
+  } else if (p.type === 'contractor') {
+    toolbar.innerHTML = '<button type="button" class="btn-action-pill active" onclick="openContractorModal(\'استحقاق_مقاول\', currentViewingParty)">+ استحقاق أعمال جديدة</button>' +
+      '<button type="button" class="btn-action-pill" onclick="openContractorModal(\'سداد_مقاول\', currentViewingParty)">+ سند صرف دفعة للمقاول</button>';
+  } else if (p.type === 'employee') {
+    toolbar.innerHTML = '<button type="button" class="btn-action-pill active" onclick="openSalaryModal(\'استحقاق_راتب\', currentViewingParty)">+ تسجيل استحقاق راتب</button>' +
+      '<button type="button" class="btn-action-pill" onclick="openSalaryModal(\'صرف_راتب\', currentViewingParty)">+ صرف راتب / سلفة</button>' +
+      '<button type="button" class="btn-action-pill" onclick="openSalaryModal(\'خصم_موظف\', currentViewingParty)">+ خصم</button>';
+  }
+
+  var aptBox = document.getElementById('prof-customer-apartments-box');
+  if (p.type === 'customer') {
+    aptBox.style.display = 'block';
+    var cApts = gApartments.filter(function(a) { return a.buyer_id === p.id; });
+    var aptListEl = document.getElementById('prof-customer-apartments-list');
+    if (!cApts.length) {
+      aptListEl.innerHTML = '<div style="font-size:12px; color:var(--text-muted);">لا توجد شقق مملوكة حالياً</div>';
+    } else {
+      var aHtml = '';
+      cApts.forEach(function(a) {
+        var pr = gProjects.find(function(x) { return x.id === a.project_id; });
+        aHtml += '<div style="background:var(--surface-elevated); padding:8px 10px; border-radius:var(--radius-sm); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">' +
+          '<div><strong>' + (pr ? pr.name + ' - ' : '') + a.name + '</strong> ($' + Number(a.sale_price).toLocaleString() + ')</div>' +
+          '<div style="display:flex; gap:6px;"><button type="button" class="btn-action-pill" onclick="openApartmentDetailModal(' + a.id + ')">التفاصيل</button>' +
+          '<button type="button" class="btn-action-pill" style="color:var(--danger);" onclick="cancelApartmentSaleContract(' + a.id + ')">فسخ العقد</button></div></div>';
+      });
+      aptListEl.innerHTML = aHtml;
+    }
+  } else {
+    aptBox.style.display = 'none';
+  }
+
+  renderPartyProfileTransactions();
+  goTo('screen-party-profile');
+}
+
+function renderPartyProfileTransactions() {
+  if (!currentViewingParty) return;
+  var q = (document.getElementById('prof-tx-search').value || '').trim().toLowerCase();
+  var dFrom = document.getElementById('prof-tx-from').value;
+  var dTo = document.getElementById('prof-tx-to').value;
+
+  var list = gTransactions.filter(function(t) {
+    if (t.party_id !== currentViewingParty.id) return false;
+    var mq = !q || String(t.id).indexOf(q) !== -1 || (t.notes && t.notes.toLowerCase().indexOf(q) !== -1) || (t.project_name && t.project_name.toLowerCase().indexOf(q) !== -1);
+    if (dFrom && t.date < dFrom) return false;
+    if (dTo && t.date > dTo) return false;
+    return mq;
+  });
+
+  var tbody = document.getElementById('prof-tx-table-body');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px;">لا توجد عمليات مسجلة</td></tr>';
+    return;
+  }
+  var html = '';
+  list.slice().reverse().forEach(function(t) {
+    html += '<tr><td>#' + t.id + '</td><td>' + t.date + '</td><td>' + t.type + '</td><td>' + (t.project_name || '---') + '</td>' +
+      '<td style="font-weight:900;">$' + Number(t.amount).toLocaleString() + '</td><td>' + (t.notes || '') + '</td>' +
+      '<td>' + buildTxRowActionsHTML(t.id) + '</td></tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function deleteCurrentPartyConfirm() {
+  if (!currentViewingParty) return;
+  if (confirm('هل أنت متأكد من حذف (' + currentViewingParty.name + ') مع جميع العمليات المرتبطة به نهائياً؟')) {
+    var id = currentViewingParty.id;
+    gTransactions = gTransactions.filter(function(t) { return t.party_id !== id; });
+    gParties = gParties.filter(function(p) { return p.id !== id; });
+    saveLocalDatabase();
+    goTo(currentPartyReturnScreen);
+    showToast('تم حذف الحساب وعملياته ✓');
+  }
+}
+
+// ==================== إدارة المواد والمصاريف العامة والعمليات ====================
+function openAddMaterialModal() {
+  document.getElementById('mat-name').value = '';
+  document.getElementById('mat-major-unit').value = '';
+  document.getElementById('mat-minor-unit').value = '';
+  document.getElementById('mat-conversion-rate').value = '1';
+  document.getElementById('mat-major-price').value = '';
+  openModal('modal-add-material');
+}
+
+function saveNewMaterial() {
+  var name = document.getElementById('mat-name').value.trim();
+  var maj = document.getElementById('mat-major-unit').value.trim();
+  var min = document.getElementById('mat-minor-unit').value.trim() || maj;
+  var rate = parseFloat(document.getElementById('mat-conversion-rate').value) || 1;
+  var price = parseFloat(document.getElementById('mat-major-price').value) || 0;
+
+  if (!name || !maj) return showToast('يرجى إدخال اسم المادة والوحدة الأساسية');
+  gMaterials.push({ id: Date.now(), name: name, major_unit: maj, minor_unit: min, conversion_rate: rate, major_price: price });
+  saveLocalDatabase();
+  closeModal('modal-add-material');
+  renderMaterialsTable();
+  showToast('تم حفظ المادة بنجاح ✓');
+}
+
+function renderMaterialsTable() {
+  var tbody = document.getElementById('materials-table-body');
+  if (!gMaterials.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">لا توجد مواد مضافة</td></tr>';
+    return;
+  }
+  var html = '';
+  gMaterials.forEach(function(m) {
+    var matTxs = gTransactions.filter(function(t) { return t.material_id === m.id; });
+    var totalPurchase = 0;
+    matTxs.forEach(function(t) { totalPurchase += (parseFloat(t.amount) || 0); });
+
+    html += '<tr onclick="openMaterialDetail(' + m.id + ')" style="cursor:pointer;">' +
+      '<td><strong>' + m.name + '</strong></td><td>' + m.major_unit + '</td><td>' + m.minor_unit + '</td>' +
+      '<td>1 ' + m.major_unit + ' = ' + m.conversion_rate + ' ' + m.minor_unit + '</td>' +
+      '<td style="font-weight:900; color:var(--info);">$' + totalPurchase.toLocaleString() + '</td>' +
+      '<td onclick="event.stopPropagation();">' +
+        '<button type="button" class="btn-action-pill" onclick="openMaterialDetail(' + m.id + ')">كشف المادة</button> ' +
+        '<button type="button" class="btn-action-pill" style="color:var(--danger);" onclick="deleteMaterialConfirm(' + m.id + ')">حذف</button>' +
+      '</td></tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function openMaterialDetail(matId) {
+  var m = gMaterials.find(function(x) { return x.id === matId; });
+  if (!m) return;
+  currentViewingMaterial = m;
+  document.getElementById('mat-detail-title').textContent = m.name;
+  document.getElementById('mat-detail-meta').textContent = 'الوحدة الكبرى: ' + m.major_unit + ' | التجزئة: ' + m.minor_unit + ' (المعامل: ' + m.conversion_rate + ')';
+
+  var txs = gTransactions.filter(function(t) { return t.material_id === m.id; });
+  var tot = 0;
+  var html = '';
+  txs.slice().reverse().forEach(function(t) {
+    tot += (parseFloat(t.amount) || 0);
+    html += '<tr><td>#' + t.id + '</td><td>' + t.date + '</td><td>' + (t.party_name || '---') + '</td><td>' + (t.project_name || '---') + '</td>' +
+      '<td>' + (t.qty || '') + ' ' + (t.unit || '') + '</td><td style="font-weight:900;">$' + Number(t.amount).toLocaleString() + '</td>' +
+      '<td>' + buildTxRowActionsHTML(t.id) + '</td></tr>';
+  });
+  document.getElementById('mat-detail-total-cost').textContent = 'إجمالي قيمة المشتريات: $' + tot.toLocaleString(undefined, {minimumFractionDigits:2});
+  document.getElementById('mat-detail-tx-body').innerHTML = html || '<tr><td colspan="7" style="text-align:center; padding:15px;">لا توجد حركات شراء لهذه المادة</td></tr>';
+  goTo('screen-material-detail');
+}
+
+function deleteMaterialConfirm(mId) {
+  if (confirm('حذف هذه المادة من الدليل؟')) {
+    gMaterials = gMaterials.filter(function(m) { return m.id !== mId; });
+    saveLocalDatabase();
+    renderMaterialsTable();
+    showToast('تم حذف المادة ✓');
+  }
+}
+
+function renderGeneralExpensesTable() {
+  var projId = parseInt(document.getElementById('exp-filter-project').value) || 0;
+  var q = (document.getElementById('exp-search-keyword').value || '').trim().toLowerCase();
+
+  var list = gTransactions.filter(function(t) {
+    if (t.type !== 'مصروف') return false;
+    if (projId && t.project_id !== projId) return false;
+    if (q && (!t.notes || t.notes.toLowerCase().indexOf(q) === -1) && (!t.project_name || t.project_name.toLowerCase().indexOf(q) === -1)) return false;
+    return true;
+  });
+
+  var tbody = document.getElementById('general-expenses-table-body');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:18px;">لا توجد مصاريف عامة مسجلة</td></tr>';
+    return;
+  }
+  var html = '';
+  list.slice().reverse().forEach(function(t) {
+    html += '<tr><td>#' + t.id + '</td><td>' + t.date + '</td><td><strong>' + (t.project_name || 'عام') + '</strong></td>' +
+      '<td style="font-weight:900; color:var(--danger);">$' + Number(t.amount).toLocaleString() + '</td><td>' + (t.notes || '') + '</td>' +
+      '<td>' + buildTxRowActionsHTML(t.id) + '</td></tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function applyTxFilters() {
+  var q = (document.getElementById('tx-search-keyword').value || '').trim().toLowerCase();
+  var dFrom = document.getElementById('tx-date-from').value;
+  var dTo = document.getElementById('tx-date-to').value;
+  var pId = parseInt(document.getElementById('tx-filter-project').value) || 0;
+  var type = document.getElementById('tx-filter-type').value;
+
+  var res = gTransactions.filter(function(t) {
+    var mq = !q || String(t.id).indexOf(q) !== -1 ||
+      (t.party_name && t.party_name.toLowerCase().indexOf(q) !== -1) ||
+      (t.project_name && t.project_name.toLowerCase().indexOf(q) !== -1) ||
+      (t.notes && t.notes.toLowerCase().indexOf(q) !== -1);
+    if (dFrom && t.date < dFrom) return false;
+    if (dTo && t.date > dTo) return false;
+    if (pId && t.project_id !== pId) return false;
+    if (type && t.type !== type) return false;
+    return mq;
+  });
+
+  lastFilteredTransactions = res;
+  var tbody = document.getElementById('tx-table-body');
+  if (!res.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;">لا توجد معاملات مطابقة للبحث</td></tr>';
+    return;
+  }
+  var html = '';
+  res.slice().reverse().forEach(function(t) {
+    html += '<tr><td>#' + t.id + '</td><td>' + t.date + '</td><td><strong>' + t.type + '</strong></td>' +
+      '<td>' + (t.party_name || t.project_name || '---') + '</td>' +
+      '<td style="font-weight:900; direction:ltr;">$' + Number(t.amount).toLocaleString() + '</td>' +
+      '<td>' + (t.notes || '') + '</td><td>' + buildTxRowActionsHTML(t.id) + '</td></tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function resetTxFilters() {
+  document.getElementById('tx-search-keyword').value = '';
+  document.getElementById('tx-date-from').value = '';
+  document.getElementById('tx-date-to').value = '';
+  document.getElementById('tx-filter-project-input').value = '';
+  document.getElementById('tx-filter-project').value = '';
+  document.getElementById('tx-filter-type').value = '';
+  applyTxFilters();
+}
+
+// ==================== قسم التقارير التفصيلية الستة ====================
+function setReportQuickRange(days) {
+  var fromEl = document.getElementById('rep-date-from');
+  var toEl = document.getElementById('rep-date-to');
+  if (!days) {
+    fromEl.value = '';
+    toEl.value = '';
+  } else {
+    var now = new Date();
+    toEl.value = now.toISOString().split('T')[0];
+    var past = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    fromEl.value = past.toISOString().split('T')[0];
+  }
+  renderReportsView();
+}
+
+function renderReportsView() {
+  var repType = document.getElementById('rep-type-select').value;
+  var dFrom = document.getElementById('rep-date-from').value;
+  var dTo = document.getElementById('rep-date-to').value;
+  var box = document.getElementById('report-view-container');
+
+  var txs = gTransactions.filter(function(t) {
+    if (dFrom && t.date < dFrom) return false;
+    if (dTo && t.date > dTo) return false;
+    return true;
+  });
+
+  var html = '';
+  if (repType === 'pnl') {
+    var totalSales = 0, cashCollected = 0, totalExpenses = 0;
+    txs.forEach(function(t) {
+      if (t.type === 'بيع') { totalSales += (parseFloat(t.amount) || 0); cashCollected += (parseFloat(t.paid) || 0); }
+      else if (t.type === 'دفعة_عميل') cashCollected += (parseFloat(t.amount) || 0);
+      else if (t.type === 'شراء' || t.type === 'مصروف' || t.type === 'صرف_راتب' || t.type === 'سداد_مقاول') totalExpenses += (parseFloat(t.amount) || 0);
+    });
+    html = '<h4 style="margin-bottom:10px;">1. تقرير الأرباح والخسائر</h4>' +
+      '<table class="data-table"><tbody>' +
+      '<tr><td>إجمالي عقود المبيعات</td><td style="font-weight:900;">$' + totalSales.toLocaleString() + '</td></tr>' +
+      '<tr><td>إجمالي السيولة المقبوضة من العملاء</td><td style="font-weight:900; color:var(--success);">$' + cashCollected.toLocaleString() + '</td></tr>' +
+      '<tr><td>إجمالي التكاليف والمصاريف</td><td style="font-weight:900; color:var(--danger);">-$' + totalExpenses.toLocaleString() + '</td></tr>' +
+      '<tr><td><strong>صافي الربح الفعلي (النقدي)</strong></td><td style="font-weight:900;">$' + (cashCollected - totalExpenses).toLocaleString() + '</td></tr>' +
+      '<tr><td><strong>صافي الربح المتوقع (بانتهاء التحصيل)</strong></td><td style="font-weight:900;">$' + (totalSales - totalExpenses).toLocaleString() + '</td></tr>' +
+      '</tbody></table>';
+  } else if (repType === 'payables') {
+    var rows = '', sumP = 0;
+    gParties.filter(function(p) { return p.type === 'supplier' || p.type === 'contractor'; }).forEach(function(p) {
+      var b = getPartyBalance(p.id);
+      if (b > 0) {
+        sumP += b;
+        rows += '<tr><td>' + p.name + '</td><td>' + (p.type === 'supplier' ? 'مورد' : 'مقاول') + '</td><td style="font-weight:900; color:var(--danger);">$' + b.toLocaleString() + '</td></tr>';
+      }
+    });
+    html = '<h4 style="margin-bottom:10px;">2. تقرير أرصدة ومستحقات الموردين والمقاولين (الإجمالي: $' + sumP.toLocaleString() + ')</h4>' +
+      '<table class="data-table"><thead><tr><th>الاسم</th><th>الصفة</th><th>المبلغ المطلوب سداده</th></tr></thead><tbody>' + (rows || '<tr><td colspan="3">لا توجد التزامات متبقية</td></tr>') + '</tbody></table>';
+  } else if (repType === 'receivables') {
+    var rowsC = '', sumC = 0;
+    gParties.filter(function(p) { return p.type === 'customer'; }).forEach(function(p) {
+      var b = getPartyBalance(p.id);
+      if (b > 0) {
+        sumC += b;
+        rowsC += '<tr><td>' + p.name + '</td><td>' + (p.phone || '---') + '</td><td style="font-weight:900; color:var(--success);">$' + b.toLocaleString() + '</td></tr>';
+      }
+    });
+    html = '<h4 style="margin-bottom:10px;">3. تقرير مستحقات وأقساط العملاء المتبقية (الإجمالي: $' + sumC.toLocaleString() + ')</h4>' +
+      '<table class="data-table"><thead><tr><th>اسم العميل</th><th>الهاتف</th><th>الرصيد المتبقي بذمته</th></tr></thead><tbody>' + (rowsC || '<tr><td colspan="3">لا توجد ذمم متبقية</td></tr>') + '</tbody></table>';
+  } else if (repType === 'cashflow') {
+    var cashIn = 0, cashOut = 0;
+    txs.forEach(function(t) {
+      if (t.type === 'بيع') cashIn += (parseFloat(t.paid) || 0);
+      else if (t.type === 'دفعة_عميل' || t.type === 'مرتجع_مورد') cashIn += (parseFloat(t.amount) || 0);
+      else if (t.type === 'شراء') cashOut += (parseFloat(t.paid) || 0);
+      else if (t.type === 'مصروف' || t.type === 'دفعة_مورد' || t.type === 'صرف_راتب' || t.type === 'سداد_مقاول') cashOut += (parseFloat(t.amount) || 0);
+    });
+    html = '<h4 style="margin-bottom:10px;">4. تقرير السيولة والنقدية الفعلية</h4>' +
+      '<table class="data-table"><tbody>' +
+      '<tr><td>إجمالي النقد الداخل (المقبوضات)</td><td style="font-weight:900; color:var(--success);">$' + cashIn.toLocaleString() + '</td></tr>' +
+      '<tr><td>إجمالي النقد الخارج (المدفوعات الفعلية)</td><td style="font-weight:900; color:var(--danger);">-$' + cashOut.toLocaleString() + '</td></tr>' +
+      '<tr><td><strong>صافي السيولة النقدية المتوفرة بالصندوق</strong></td><td style="font-weight:900; font-size:15px;">$' + (cashIn - cashOut).toLocaleString() + '</td></tr>' +
+      '</tbody></table>';
+  } else if (repType === 'expenses_salaries') {
+    var rowsE = '', sumE = 0;
+    txs.filter(function(t) { return t.type === 'مصروف' || t.type === 'صرف_راتب'; }).forEach(function(t) {
+      sumE += (parseFloat(t.amount) || 0);
+      rowsE += '<tr><td>' + t.date + '</td><td>' + t.type + '</td><td>' + (t.party_name || t.project_name || '---') + '</td><td>$' + Number(t.amount).toLocaleString() + '</td><td>' + (t.notes || '') + '</td></tr>';
+    });
+    html = '<h4 style="margin-bottom:10px;">5. تقرير المصاريف والرواتب المدفوعة فعلياً ($' + sumE.toLocaleString() + ')</h4>' +
+      '<table class="data-table"><thead><tr><th>التاريخ</th><th>النوع</th><th>الجهة/الورشة</th><th>المبلغ</th><th>البيان</th></tr></thead><tbody>' + (rowsE || '<tr><td colspan="5">لا توجد حركات</td></tr>') + '</tbody></table>';
+  } else if (repType === 'total_liabilities') {
+    var rowsL = '', sumL = 0;
+    gParties.filter(function(p) { return p.type !== 'customer'; }).forEach(function(p) {
+      var b = getPartyBalance(p.id);
+      if (b > 0) {
+        sumL += b;
+        var typeAr = p.type === 'supplier' ? 'مورد' : (p.type === 'contractor' ? 'مقاول' : 'موظف');
+        rowsL += '<tr><td>' + p.name + '</td><td>' + typeAr + '</td><td style="font-weight:900; color:var(--danger);">$' + b.toLocaleString() + '</td></tr>';
+      }
+    });
+    html = '<h4 style="margin-bottom:10px;">6. تقرير الالتزامات العامة الشامل (إجمالي الديون علينا: $' + sumL.toLocaleString() + ')</h4>' +
+      '<table class="data-table"><thead><tr><th>الطرف</th><th>الصفة</th><th>المبلغ المستحق له</th></tr></thead><tbody>' + (rowsL || '<tr><td colspan="3">لا توجد التزامات قائمة</td></tr>') + '</tbody></table>';
+  }
+
+  box.innerHTML = html;
+}
+
+// ==================== المعاينة، واتساب، وتوليد ملفات PDF العربية السليمة ====================
+function openTxPreviewModal(txId) {
+  var t = gTransactions.find(function(x) { return x.id === txId; });
+  if (!t) return;
+  activePreviewTx = t;
+  var card = document.getElementById('tx-preview-card');
+  card.innerHTML = '<div style="text-align:center; border-bottom:1px solid var(--border-subtle); padding-bottom:8px; margin-bottom:8px;">' +
+    '<div style="font-weight:900; font-size:15px;">' + gSettings.company_name + '</div>' +
+    '<div style="font-size:11px; color:var(--text-muted);">سند عملية رقم: #' + t.id + ' | التاريخ: ' + t.date + '</div></div>' +
+    '<div>نوع العملية: <strong>' + t.type + '</strong></div>' +
+    (t.party_name ? '<div>الطرف: <strong>' + t.party_name + '</strong></div>' : '') +
+    (t.project_name ? '<div>الورشة: <strong>' + t.project_name + '</strong></div>' : '') +
+    (t.apartment_name ? '<div>الشقة: <strong>' + t.apartment_name + '</strong></div>' : '') +
+    '<div style="font-size:15px; font-weight:900; margin-top:4px;">المبلغ الإجمالي: $' + Number(t.amount).toLocaleString() + '</div>' +
+    (t.paid ? '<div>المدفوع: $' + Number(t.paid).toLocaleString() + ' | المتبقي: $' + Number(t.remaining || 0).toLocaleString() + '</div>' : '') +
+    '<div>البيان: ' + (t.notes || '---') + '</div>';
+  openModal('modal-tx-preview');
+}
+
+function shareTxWhatsApp() {
+  if (!activePreviewTx) return;
+  var t = activePreviewTx;
+  var msg = '*' + gSettings.company_name + '*\n' +
+    'إشعار معاملة مالية رسمية\n' +
+    '------------------------\n' +
+    'رقم العملية: #' + t.id + '\n' +
+    'التاريخ: ' + t.date + '\n' +
+    'النوع: ' + t.type + '\n' +
+    (t.party_name ? 'الاسم: ' + t.party_name + '\n' : '') +
+    (t.project_name ? 'الورشة: ' + t.project_name + '\n' : '') +
+    (t.apartment_name ? 'الشقة: ' + t.apartment_name + '\n' : '') +
+    'المبلغ: $' + Number(t.amount).toLocaleString() + '\n' +
+    (t.paid ? 'المدفوع: $' + Number(t.paid).toLocaleString() + '\n' : '') +
+    (t.notes ? 'البيان: ' + t.notes + '\n' : '') +
+    '------------------------\n' +
+    (gSettings.phone_accounting ? 'إدارة المحاسبة: ' + gSettings.phone_accounting : '');
+  window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function buildOfficialPDFHeaderHTML(docTitle, docSub, qrDataSrc) {
+  var logoHtml = gSettings.logo_url ?
+    '<img src="' + gSettings.logo_url + '" style="height:60px; max-width:160px; object-fit:contain;">' :
+    '<div style="background:#000; color:#fff; font-weight:900; font-size:22px; padding:6px 16px; display:inline-block; border-radius:6px;">TCC</div>';
+
+  return '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #000; padding-bottom:12px; margin-bottom:18px; direction:rtl;">' +
+    '<div style="text-align:right;">' + logoHtml +
+      '<div style="font-size:16px; font-weight:900; margin-top:4px; color:#000;">' + gSettings.company_name + '</div>' +
+    '</div>' +
+    '<div style="text-align:center;">' +
+      '<div style="font-size:18px; font-weight:900; color:#000;">' + docTitle + '</div>' +
+      '<div style="font-size:12px; color:#444; margin-top:2px;">' + docSub + '</div>' +
+    '</div>' +
+    '<div style="text-align:left; font-size:11px; line-height:1.6; color:#111;">' +
+      (gSettings.phone_admin1 ? '<div>الإدارة 1: ' + gSettings.phone_admin1 + '</div>' : '') +
+      (gSettings.phone_admin2 ? '<div>الإدارة 2: ' + gSettings.phone_admin2 + '</div>' : '') +
+      (gSettings.phone_accounting ? '<div>المحاسبة المالية: ' + gSettings.phone_accounting + '</div>' : '') +
+      (gSettings.company_email ? '<div>البريد: ' + gSettings.company_email + '</div>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+async function generateQRDataURL(textStr) {
+  try {
+    if (!window.QRCode) return '';
+    var tempDiv = document.createElement('div');
+    new window.QRCode(tempDiv, { text: textStr, width: 88, height: 88 });
+    await new Promise(function(r) { setTimeout(r, 150); });
+    var img = tempDiv.querySelector('img') || tempDiv.querySelector('canvas');
+    return img ? (img.src || (img.toDataURL ? img.toDataURL() : '')) : '';
+  } catch (e) { return ''; }
+}
+
+async function renderHTMLToPDFFile(htmlContent, fileName) {
+  var canvasArea = document.getElementById('pdf-render-canvas');
+  canvasArea.innerHTML = htmlContent;
+  showToast('جاري تجهيز وتوليد ملف PDF...');
+  try {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    await new Promise(function(r) { setTimeout(r, 200); });
+    if (!window.html2canvas || !window.jspdf) {
+      alert('يرجى التأكد من اتصال الإنترنت بالمرة الأولى لتحميل مكتبة الطباعة PDF.');
+      return;
+    }
+    var canvas = await window.html2canvas(canvasArea, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    var imgData = canvas.toDataURL('image/jpeg', 0.96);
+    var pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+    var pdfW = 210;
+    var pdfH = (canvas.height * pdfW) / canvas.width;
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+    pdf.save(fileName + '.pdf');
+    showToast('تم تحميل ملف PDF بنجاح ✓');
+  } catch (err) {
+    alert('حدث خطأ أثناء تصدير PDF: ' + err.message);
+  } finally {
+    canvasArea.innerHTML = '';
+  }
+}
+
+async function exportCurrentTxPDF() {
+  if (!activePreviewTx) return;
+  var t = activePreviewTx;
+  var qrSrc = await generateQRDataURL('TCC-TX-' + t.id + '-AMT-' + t.amount + '-DATE-' + t.date);
+  var html = buildOfficialPDFHeaderHTML('سند معاملة مالية رسمية', 'رقم العملية: #' + t.id + ' | التاريخ: ' + t.date) +
+    '<table><tbody>' +
+    '<tr><th style="width:28%; background:#f1f5f9;">نوع العملية</th><td style="font-weight:bold;">' + t.type + '</td></tr>' +
+    (t.party_name ? '<tr><th style="background:#f1f5f9;">الاسم / الجهة</th><td style="font-weight:bold;">' + t.party_name + '</td></tr>' : '') +
+    (t.project_name ? '<tr><th style="background:#f1f5f9;">الورشة / المشروع</th><td>' + t.project_name + '</td></tr>' : '') +
+    (t.apartment_name ? '<tr><th style="background:#f1f5f9;">الشقة</th><td>' + t.apartment_name + '</td></tr>' : '') +
+    '<tr><th style="background:#f1f5f9;">المبلغ الإجمالي</th><td style="font-size:15px; font-weight:bold;">$' + Number(t.amount).toLocaleString() + '</td></tr>' +
+    (t.paid ? '<tr><th style="background:#f1f5f9;">المدفوع</th><td>$' + Number(t.paid).toLocaleString() + '</td></tr>' : '') +
+    (t.remaining ? '<tr><th style="background:#f1f5f9;">الرصيد المتبقي</th><td style="color:#b91c1c; font-weight:bold;">$' + Number(t.remaining).toLocaleString() + '</td></tr>' : '') +
+    '<tr><th style="background:#f1f5f9;">البيان والتفاصيل</th><td>' + (t.notes || '---') + '</td></tr>' +
+    '</tbody></table>' +
+    '<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:35px; padding-top:15px; border-top:1px solid #ccc;">' +
+      '<div>' + (qrSrc ? '<img src="' + qrSrc + '" style="width:85px; height:85px;">' : '') + '<div style="font-size:10px; color:#555;">رمز التحقق الرقمي QR</div></div>' +
+      '<div style="text-align:center;"><div style="font-weight:bold; margin-bottom:35px;">إدارة المحاسبة المالية - شركة TCC</div><div>التوقيع والختم المعتمد</div></div>' +
+    '</div>';
+  await renderHTMLToPDFFile(html, 'TCC_سند_' + t.id);
+}
+
+async function exportFilteredTxPDF() {
+  var list = lastFilteredTransactions || gTransactions;
+  var qrSrc = await generateQRDataURL('TCC-REPORT-TXS-' + list.length);
+  var rows = '';
+  list.forEach(function(t) {
+    rows += '<tr><td>#' + t.id + '</td><td>' + t.date + '</td><td>' + t.type + '</td><td>' + (t.party_name || t.project_name || '---') + '</td><td style="font-weight:bold;">$' + Number(t.amount).toLocaleString() + '</td><td>' + (t.notes || '') + '</td></tr>';
+  });
+  var html = buildOfficialPDFHeaderHTML('تقرير سجل العمليات المالي', 'تاريخ التصدير: ' + new Date().toISOString().split('T')[0]) +
+    '<table><thead><tr style="background:#f1f5f9;"><th>#</th><th>التاريخ</th><th>النوع</th><th>الطرف/الورشة</th><th>المبلغ</th><th>البيان</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    (qrSrc ? '<div style="margin-top:20px;"><img src="' + qrSrc + '" style="width:75px; height:75px;"></div>' : '');
+  await renderHTMLToPDFFile(html, 'TCC_سجل_العمليات');
+}
+
+async function exportProjectReportPDF() {
+  if (!currentViewingProject) return;
+  var p = currentViewingProject;
+  var apts = gApartments.filter(function(a) { return a.project_id === p.id; });
+  var qrSrc = await generateQRDataURL('TCC-PROJ-' + p.id);
+  var rows = '';
+  apts.forEach(function(a) {
+    var st = getApartmentPaymentStats(a.id);
+    rows += '<tr><td>' + a.name + '</td><td>' + a.status + '</td><td>' + (a.buyer_name || '---') + '</td><td>$' + Number(a.sale_price || 0).toLocaleString() + '</td><td>$' + st.paid.toLocaleString() + '</td><td>$' + Math.max(0, (a.sale_price || 0) - st.paid).toLocaleString() + '</td></tr>';
+  });
+  var html = buildOfficialPDFHeaderHTML('تقرير الورشة: ' + p.name, 'العنوان: ' + (p.location || '---')) +
+    '<div style="margin-bottom:12px; font-weight:bold;">إجمالي المصاريف: ' + document.getElementById('proj-box-expenses').textContent + ' | الأرباح الفعلية: ' + document.getElementById('proj-box-actual-profit').textContent + ' | الأرباح المتوقعة: ' + document.getElementById('proj-box-expected-profit').textContent + '</div>' +
+    '<table><thead><tr style="background:#f1f5f9;"><th>الشقة</th><th>الحالة</th><th>المشتري</th><th>السعر</th><th>المسدد</th><th>المتبقي</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    (qrSrc ? '<div style="margin-top:20px;"><img src="' + qrSrc + '" style="width:75px; height:75px;"></div>' : '');
+  await renderHTMLToPDFFile(html, 'TCC_تقرير_ورشة_' + p.name);
+}
+
+async function exportApartmentStatementPDF(aptId) {
+  var a = gApartments.find(function(x) { return x.id === aptId; });
+  if (!a) return;
+  var st = getApartmentPaymentStats(a.id);
+  var qrSrc = await generateQRDataURL('TCC-APT-' + a.id);
+  var rows = '';
+  st.list.forEach(function(pm) {
+    rows += '<tr><td>#' + pm.id + '</td><td>' + pm.date + '</td><td>' + pm.notes + '</td><td style="font-weight:bold;">$' + pm.amount.toLocaleString() + '</td></tr>';
+  });
+  var html = buildOfficialPDFHeaderHTML('كشف حساب شقة عقارية: ' + a.name, 'المشتري: ' + (a.buyer_name || 'متاحة')) +
+    '<div style="margin-bottom:12px; font-weight:bold;">السعر الإجمالي: $' + Number(a.sale_price || 0).toLocaleString() + ' | المسدد: $' + st.paid.toLocaleString() + ' | المتبقي: $' + Math.max(0, (a.sale_price || 0) - st.paid).toLocaleString() + '</div>' +
+    '<table><thead><tr style="background:#f1f5f9;"><th>رقم السند</th><th>التاريخ</th><th>البيان</th><th>المبلغ المسدد</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    (qrSrc ? '<div style="margin-top:20px;"><img src="' + qrSrc + '" style="width:75px; height:75px;"></div>' : '');
+  await renderHTMLToPDFFile(html, 'TCC_شقة_' + a.name);
+}
+
+async function exportPartyStatementPDF() {
+  if (!currentViewingParty) return;
+  var p = currentViewingParty;
+  var sum = getPartySummary(p.id);
+  var qrSrc = await generateQRDataURL('TCC-PARTY-' + p.id + '-BAL-' + sum.balance);
+  var list = gTransactions.filter(function(t) { return t.party_id === p.id; });
+  var rows = '';
+  list.forEach(function(t) {
+    rows += '<tr><td>#' + t.id + '</td><td>' + t.date + '</td><td>' + t.type + '</td><td>$' + Number(t.amount).toLocaleString() + '</td><td>' + (t.notes || '') + '</td></tr>';
+  });
+  var html = buildOfficialPDFHeaderHTML('كشف حساب تفصيلي: ' + p.name, 'الهاتف: ' + (p.phone || '---')) +
+    '<div style="margin-bottom:12px; font-weight:bold;">إجمالي المستحق: $' + sum.totalRequired.toLocaleString() + ' | المسدد: $' + sum.totalPaid.toLocaleString() + ' | الرصيد المتبقي: $' + sum.balance.toLocaleString() + '</div>' +
+    '<table><thead><tr style="background:#f1f5f9;"><th>#</th><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>البيان</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+    (qrSrc ? '<div style="margin-top:20px;"><img src="' + qrSrc + '" style="width:75px; height:75px;"></div>' : '');
+  await renderHTMLToPDFFile(html, 'TCC_كشف_' + p.name);
+}
+
+async function exportMaterialDetailPDF() {
+  if (!currentViewingMaterial) return;
+  var m = currentViewingMaterial;
+  var list = gTransactions.filter(function(t) { return t.material_id === m.id; });
+  var rows = '';
+  list.forEach(function(t) {
+    rows += '<tr><td>#' + t.id + '</td><td>' + t.date + '</td><td>' + (t.party_name || '---') + '</td><td>' + (t.project_name || '---') + '</td><td>' + (t.qty || '') + ' ' + (t.unit || '') + '</td><td>$' + Number(t.amount).toLocaleString() + '</td></tr>';
+  });
+  var html = buildOfficialPDFHeaderHTML('تقرير مشتريات مادة: ' + m.name, document.getElementById('mat-detail-total-cost').textContent) +
+    '<table><thead><tr style="background:#f1f5f9;"><th>#</th><th>التاريخ</th><th>المورد</th><th>الورشة</th><th>الكمية</th><th>المبلغ</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  await renderHTMLToPDFFile(html, 'TCC_مادة_' + m.name);
+}
+
+async function exportExpensesPDF() {
+  var html = buildOfficialPDFHeaderHTML('تقرير المصاريف العامة والتشغيلية', 'تاريخ التصدير: ' + new Date().toISOString().split('T')[0]) +
+    '<table><thead><tr style="background:#f1f5f9;"><th>#</th><th>التاريخ</th><th>الورشة</th><th>المبلغ</th><th>البيان</th></tr></thead><tbody>' +
+    document.getElementById('general-expenses-table-body').innerHTML + '</tbody></table>';
+  await renderHTMLToPDFFile(html, 'TCC_المصاريف_العامة');
+}
+
+async function exportActiveReportPDF() {
+  var html = buildOfficialPDFHeaderHTML('تقرير مالي رسمي - شركة TCC', 'تاريخ التصدير: ' + new Date().toISOString().split('T')[0]) +
+    document.getElementById('report-view-container').innerHTML;
+  await renderHTMLToPDFFile(html, 'TCC_تقرير_مالي');
+}
+
+// ==================== الإعدادات والنسخ الاحتياطي ====================
+function handleLogoUpload(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    gSettings.logo_url = evt.target.result;
+    updateCompanyHeadersAndFields();
+    showToast('تم رفع شعار الشركة بنجاح ✓');
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveCompanyInfoSettings() {
+  gSettings.company_name = document.getElementById('cfg-company-name').value.trim() || 'TCC للمقاولات العامة';
+  gSettings.phone_admin1 = document.getElementById('cfg-phone-admin1').value.trim();
+  gSettings.phone_admin2 = document.getElementById('cfg-phone-admin2').value.trim();
+  gSettings.phone_accounting = document.getElementById('cfg-phone-accounting').value.trim();
+  gSettings.company_email = document.getElementById('cfg-company-email').value.trim();
+  safeSetStorage(DB_KEY_SETTINGS, JSON.stringify(gSettings));
+  updateCompanyHeadersAndFields();
+  showToast('تم حفظ معلومات شركة TCC بنجاح ✓');
+}
+
+function saveDatabaseConfig() {
+  gSettings.supabase_url = document.getElementById('cfg-db-url').value.trim();
+  gSettings.supabase_key = document.getElementById('cfg-db-key').value.trim();
+  safeSetStorage(DB_KEY_SETTINGS, JSON.stringify(gSettings));
+  initSupabaseIfConfigured();
+  showToast('تم حفظ مفاتيح قاعدة البيانات ✓');
+}
+
+function disconnectDatabase() {
+  gSettings.supabase_url = '';
+  gSettings.supabase_key = '';
+  safeSetStorage(DB_KEY_SETTINGS, JSON.stringify(gSettings));
+  supabaseClient = null;
+  document.getElementById('header-db-status').textContent = 'قاعدة البيانات: محلية نشطة';
+  showToast('تم تفعيل الوضع المحلي ✓');
+}
+
+function exportEmergencyJSONBackup() {
+  var data = {
+    settings: gSettings,
+    projects: gProjects,
+    apartments: gApartments,
+    parties: gParties,
+    materials: gMaterials,
+    transactions: gTransactions,
+    exported_at: new Date().toISOString()
+  };
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'TCC_Backup_' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  showToast('تم تصدير النسخة الاحتياطية ✓');
+}
+
+function importEmergencyJSONBackup(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      var d = JSON.parse(evt.target.result);
+      if (confirm('استعادة كافة البيانات من الملف الاحتياطي؟')) {
+        if (d.projects) gProjects = d.projects;
+        if (d.apartments) gApartments = d.apartments;
+        if (d.parties) gParties = d.parties;
+        if (d.materials) gMaterials = d.materials;
+        if (d.transactions) gTransactions = d.transactions;
+        if (d.settings) {
+          Object.assign(gSettings, d.settings);
+          safeSetStorage(DB_KEY_SETTINGS, JSON.stringify(gSettings));
+          updateCompanyHeadersAndFields();
+        }
+        saveLocalDatabase();
+        closeModal('modal-emergency-backup');
+        goTo('screen-home');
+        showToast('تمت استعادة البيانات بنجاح ✓');
+      }
+    } catch (err) { alert('ملف غير صالح'); }
+  };
+  reader.readAsText(file);
+}
+
+// ==================== تشغيل المنظومة ====================
+function initApp() {
+  var savedTheme = safeGetStorage('tcc_app_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  loadLocalDatabase();
+  loadCompanySettings();
+  initSupabaseIfConfigured();
+  renderDashboardStats();
+  renderRecentHomeTransactions();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function(err) {
+      console.log('SW Error:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
